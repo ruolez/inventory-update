@@ -842,3 +842,16 @@ body {
     color: var(--on-surface);
     text-align: right;
 }
+
+/* Top Bins Section */
+.top-bins-section {
+    margin-top: var(--spacing-md);
+    padding: var(--spacing-sm);
+    background-color: var(--surface-variant);
+    border-radius: var(--radius-sm);
+}
+
+.top-bins-total {
+    font-size: 0.85rem;
+    color: var(--on-surface);
+}

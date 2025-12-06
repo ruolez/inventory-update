@@ -470,3 +470,20 @@ class MSSQLManager:
             result = self._row_to_dict(cursor, row)
             cursor.close()
             return result
+
+    # ==================== Bin Locations (Store DB) ====================
+
+    def get_bin_locations_total(self, product_upc):
+        """Get total quantity in bin locations for a product (cases × units per case)"""
+        with self.get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute("""
+                SELECT SUM(ISNULL(bl.Qty_Cases, 0) * ISNULL(i.UnitQty2, 0)) AS total_qty
+                FROM Items_BinLocations bl
+                LEFT JOIN Items_tbl i ON bl.ProductUPC = i.ProductUPC
+                WHERE bl.ProductUPC = ?
+            """, (product_upc,))
+            row = cursor.fetchone()
+            result = self._row_to_dict(cursor, row)
+            cursor.close()
+            return result

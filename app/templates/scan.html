@@ -52,6 +52,11 @@
             <div id="purchase-orders-total" class="purchase-orders-total"></div>
         </div>
 
+        <!-- Top Bins Info -->
+        <div id="top-bins-section" class="top-bins-section hidden">
+            <div id="top-bins-total" class="top-bins-total"></div>
+        </div>
+
         <div class="flex-between mt-md">
             <button id="cancel-btn" class="btn btn-secondary">Cancel</button>
             <button id="submit-btn" class="btn btn-primary">Update Quantity</button>
@@ -111,6 +116,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const purchaseOrdersSection = document.getElementById('purchase-orders-section');
     const purchaseOrdersList = document.getElementById('purchase-orders-list');
     const purchaseOrdersTotal = document.getElementById('purchase-orders-total');
+    const topBinsSection = document.getElementById('top-bins-section');
+    const topBinsTotal = document.getElementById('top-bins-total');
 
     const barcodeInput = document.getElementById('barcode-input');
     const quantityInput = document.getElementById('quantity-input');
@@ -214,9 +221,10 @@ document.addEventListener('DOMContentLoaded', () => {
         quantityInput.value = '';
         quantityInput.focus();
 
-        // Fetch and display quotations and purchase orders
+        // Fetch and display quotations, purchase orders, and top bins
         fetchQuotations(product.product_upc);
         fetchPurchaseOrders(product.product_upc);
+        fetchTopBins(product.product_upc);
     }
 
     async function fetchQuotations(upc) {
@@ -299,6 +307,25 @@ document.addEventListener('DOMContentLoaded', () => {
             purchaseOrdersSection.classList.remove('hidden');
         } catch (error) {
             console.error('Failed to fetch purchase orders:', error);
+        }
+    }
+
+    async function fetchTopBins(upc) {
+        topBinsSection.classList.add('hidden');
+        topBinsTotal.textContent = '';
+
+        try {
+            const response = await fetch(`/api/product/bin-locations?upc=${encodeURIComponent(upc)}`);
+            const data = await response.json();
+
+            if (!response.ok || !data.total_qty || data.total_qty === 0) {
+                return;
+            }
+
+            topBinsTotal.innerHTML = `<strong>Top Bins:</strong> ${data.total_qty}`;
+            topBinsSection.classList.remove('hidden');
+        } catch (error) {
+            console.error('Failed to fetch top bins:', error);
         }
     }
 

@@ -484,6 +484,30 @@ def api_product_purchase_orders():
         return jsonify({'error': f'Failed to get purchase orders: {str(e)}'}), 500
 
 
+@app.route('/api/product/bin-locations')
+@login_required
+def api_product_bin_locations():
+    """Get total quantity in bin locations for this product"""
+    upc = request.args.get('upc', '').strip()
+
+    if not upc:
+        return jsonify({'error': 'UPC is required'}), 400
+
+    store_db = get_primary_store_db()
+    if not store_db:
+        return jsonify({'error': 'Primary store not configured'}), 503
+
+    try:
+        result = store_db.get_bin_locations_total(upc)
+        total_qty = float(result.get('total_qty') or 0) if result else 0
+
+        return jsonify({
+            'total_qty': total_qty
+        })
+    except Exception as e:
+        return jsonify({'error': f'Failed to get bin locations: {str(e)}'}), 500
+
+
 # ==================== CONFIG API ====================
 
 @app.route('/api/config/status')
