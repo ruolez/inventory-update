@@ -61,6 +61,20 @@
             <p class="text-secondary">Add a store connection to get started.</p>
         </div>
     </div>
+
+    <!-- Quantity Threshold Setting -->
+    <div class="card">
+        <h2 class="card-title">Quantity Threshold Warning</h2>
+        <p class="text-secondary mb-md">Warn users when the quantity change exceeds this threshold. Set to 0 to disable warnings.</p>
+
+        <form id="threshold-form">
+            <div class="form-group">
+                <label class="form-label" for="threshold-value">Threshold (units)</label>
+                <input type="number" id="threshold-value" class="form-input" min="0" step="1" placeholder="e.g., 10" required>
+            </div>
+            <button type="submit" class="btn btn-primary">Save</button>
+        </form>
+    </div>
 </div>
 
 <!-- Add/Edit Store Modal -->
@@ -109,6 +123,7 @@
 document.addEventListener('DOMContentLoaded', () => {
     loadAdminDbConfig();
     loadStores();
+    loadThreshold();
 
     // Admin DB form
     document.getElementById('admin-db-form').addEventListener('submit', saveAdminDb);
@@ -119,6 +134,9 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('store-form').addEventListener('submit', saveStore);
     document.getElementById('cancel-store-btn').addEventListener('click', closeStoreModal);
     document.getElementById('test-store-btn').addEventListener('click', testStoreFromModal);
+
+    // Threshold form
+    document.getElementById('threshold-form').addEventListener('submit', saveThreshold);
 });
 
 // Admin DB functions
@@ -338,6 +356,31 @@ async function setPrimaryStore(storeId) {
         await api(`/api/config/stores/${storeId}/set-primary`, { method: 'POST' });
         showToast('Primary store updated');
         loadStores();
+    } catch (error) {
+        showToast(error.message, 'error');
+    }
+}
+
+// Threshold functions
+async function loadThreshold() {
+    try {
+        const data = await api('/api/config/settings/quantity-threshold');
+        document.getElementById('threshold-value').value = data.threshold || 10;
+    } catch (error) {
+        console.error('Failed to load threshold:', error);
+    }
+}
+
+async function saveThreshold(e) {
+    e.preventDefault();
+    const threshold = document.getElementById('threshold-value').value;
+
+    try {
+        await api('/api/config/settings/quantity-threshold', {
+            method: 'POST',
+            body: JSON.stringify({ threshold: parseFloat(threshold) })
+        });
+        showToast('Threshold saved');
     } catch (error) {
         showToast(error.message, 'error');
     }

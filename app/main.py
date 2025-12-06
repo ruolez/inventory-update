@@ -24,6 +24,9 @@ app.jinja_env.auto_reload = True
 # Initialize database managers
 pg_manager = PostgresManager()
 
+# Initialize app settings table
+pg_manager.init_settings_table()
+
 # Central Time zone
 CENTRAL_TZ = ZoneInfo("America/Chicago")
 
@@ -663,6 +666,93 @@ def api_set_primary_store(store_id):
         return jsonify({'success': True})
     except Exception as e:
         return jsonify({'error': f'Failed to set primary store: {str(e)}'}), 500
+
+
+# ==================== SETTINGS API ====================
+
+@app.route('/api/config/settings/quantity-threshold', methods=['GET'])
+def api_get_quantity_threshold():
+    """Get quantity threshold setting"""
+    setting = pg_manager.get_setting('quantity_threshold')
+    threshold = float(setting['value']) if setting else 10
+    return jsonify({'threshold': threshold})
+
+
+@app.route('/api/config/settings/quantity-threshold', methods=['POST'])
+def api_save_quantity_threshold():
+    """Save quantity threshold setting"""
+    data = request.get_json()
+    threshold = data.get('threshold')
+
+    if threshold is None:
+        return jsonify({'error': 'Threshold value is required'}), 400
+
+    try:
+        threshold = float(threshold)
+        if threshold < 0:
+            return jsonify({'error': 'Threshold must be a non-negative number'}), 400
+    except ValueError:
+        return jsonify({'error': 'Invalid threshold value'}), 400
+
+    try:
+        pg_manager.save_setting('quantity_threshold', threshold)
+        return jsonify({'success': True, 'threshold': threshold})
+    except Exception as e:
+        return jsonify({'error': f'Failed to save threshold: {str(e)}'}), 500
+
+
+@app.route('/api/product/check-difference', methods=['POST'])
+@login_required
+def api_check_difference():
+    """Check if quantity difference exceeds threshold (before updating)"""
+    data = request.get_json()
+    product_id = data.get('product_id')
+    user_entered_qty = data.get('new_quantity')
+    quotations_qty = data.get('quotations_qty', 0) or 0
+
+    if product_id is None:
+        return jsonify({'error': 'Product ID is required'}), 400
+    if user_entered_qty is None:
+        return jsonify({'error': 'New quantity is required'}), 400
+
+    try:
+        user_entered_qty = float(user_entered_qty)
+        quotations_qty = float(quotations_qty)
+    except ValueError:
+        return jsonify({'error': 'Invalid quantity value'}), 400
+
+    # Calculate final quantity
+    final_qty = user_entered_qty + quotations_qty
+
+    store_db = get_primary_store_db()
+    if not store_db:
+        return jsonify({'error': 'Primary store not configured'}), 503
+
+    try:
+        # Get current product info
+        product = store_db.get_product_by_id(product_id)
+        if not product:
+            return jsonify({'error': 'Product not found'}), 404
+
+        old_quantity = product['QuantOnHand'] or 0
+        difference = final_qty - old_quantity
+
+        # Get threshold setting
+        setting = pg_manager.get_setting('quantity_threshold')
+        threshold = float(setting['value']) if setting else 10
+
+        # Check if difference exceeds threshold (absolute value)
+        exceeds_threshold = abs(difference) > threshold
+
+        return jsonify({
+            'old_quantity': old_quantity,
+            'final_qty': final_qty,
+            'difference': difference,
+            'threshold': threshold,
+            'exceeds_threshold': exceeds_threshold
+        })
+    except Exception as e:
+        return jsonify({'error': f'Check failed: {str(e)}'}), 500
 
 
 # ==================== HEALTH CHECK ====================

@@ -247,6 +247,46 @@ class PostgresManager:
             with conn.cursor() as cur:
                 cur.execute("DELETE FROM sessions WHERE expires_at < CURRENT_TIMESTAMP")
 
+    # ==================== App Settings ====================
+
+    def init_settings_table(self):
+        """Create app_settings table if it doesn't exist"""
+        with self.get_connection() as conn:
+            with conn.cursor() as cur:
+                cur.execute("""
+                    CREATE TABLE IF NOT EXISTS app_settings (
+                        key VARCHAR(100) PRIMARY KEY,
+                        value TEXT NOT NULL,
+                        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                    )
+                """)
+                # Insert default threshold if not exists
+                cur.execute("""
+                    INSERT INTO app_settings (key, value)
+                    VALUES ('quantity_threshold', '10')
+                    ON CONFLICT (key) DO NOTHING
+                """)
+
+    def get_setting(self, key):
+        """Get a setting value by key"""
+        with self.get_connection() as conn:
+            with conn.cursor(cursor_factory=RealDictCursor) as cur:
+                cur.execute("SELECT key, value FROM app_settings WHERE key = %s", (key,))
+                row = cur.fetchone()
+                return dict(row) if row else None
+
+    def save_setting(self, key, value):
+        """Save/update a setting value"""
+        with self.get_connection() as conn:
+            with conn.cursor() as cur:
+                cur.execute("""
+                    INSERT INTO app_settings (key, value, updated_at)
+                    VALUES (%s, %s, CURRENT_TIMESTAMP)
+                    ON CONFLICT (key) DO UPDATE SET
+                        value = EXCLUDED.value,
+                        updated_at = CURRENT_TIMESTAMP
+                """, (key, str(value)))
+
 
 def get_mssql_connection_string(server, port, database, user, password, tds_version="7.4", timeout=30):
     """

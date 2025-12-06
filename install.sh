@@ -280,6 +280,17 @@ run_migrations() {
             END IF;
         END \$\$;
     " > /dev/null 2>&1 && print_success "Database migrations completed" || print_warning "Migration check completed"
+
+    # Create app_settings table for threshold and other settings
+    docker exec inventory_db psql -U postgres -d inventory -c "
+        CREATE TABLE IF NOT EXISTS app_settings (
+            key VARCHAR(100) PRIMARY KEY,
+            value TEXT NOT NULL,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        );
+        INSERT INTO app_settings (key, value) VALUES ('quantity_threshold', '10')
+        ON CONFLICT (key) DO NOTHING;
+    " > /dev/null 2>&1 && print_success "App settings table ready" || print_warning "Settings table check completed"
 }
 
 # Update from GitHub

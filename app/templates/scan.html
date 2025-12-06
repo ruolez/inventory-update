@@ -16,7 +16,6 @@
                 autofocus
             >
         </div>
-        <p class="text-secondary text-center">Scan a barcode or type it and press Enter</p>
     </div>
 
     <!-- Product Info (hidden initially) -->
@@ -100,6 +99,24 @@
         </div>
     </div>
 </div>
+
+<!-- Threshold Warning Modal -->
+<div id="threshold-modal" class="modal hidden">
+    <div class="modal-content warning">
+        <h2 class="text-warning">Large Quantity Change</h2>
+        <div class="warning-details">
+            <p><strong>Current quantity:</strong> <span id="warn-current">0</span></p>
+            <p><strong>New quantity:</strong> <span id="warn-new">0</span></p>
+            <p class="difference-warning"><strong>Difference:</strong> <span id="warn-diff">0</span></p>
+        </div>
+        <p class="text-center text-secondary">This change exceeds the threshold of <span id="warn-threshold">10</span> units.</p>
+        <p class="text-center text-secondary">Are you sure you want to proceed?</p>
+        <div class="modal-actions">
+            <button id="warn-cancel-btn" class="btn btn-secondary">Cancel</button>
+            <button id="warn-proceed-btn" class="btn btn-warning">Proceed</button>
+        </div>
+    </div>
+</div>
 {% endblock %}
 
 {% block scripts %}
@@ -128,6 +145,10 @@ document.addEventListener('DOMContentLoaded', () => {
     const quantityModal = document.getElementById('quantity-modal');
     const confirmCancelBtn = document.getElementById('confirm-cancel-btn');
     const confirmOkBtn = document.getElementById('confirm-ok-btn');
+
+    const thresholdModal = document.getElementById('threshold-modal');
+    const warnCancelBtn = document.getElementById('warn-cancel-btn');
+    const warnProceedBtn = document.getElementById('warn-proceed-btn');
 
     // State
     let currentProduct = null;
@@ -177,18 +198,75 @@ document.addEventListener('DOMContentLoaded', () => {
         resetToBarcode();
     }
 
-    async function closeModalAndUpdate() {
+    async function closeModalAndCheckDifference() {
         quantityModal.classList.add('hidden');
         if (modalKeyHandler) {
             document.removeEventListener('keydown', modalKeyHandler);
             modalKeyHandler = null;
         }
+        await checkDifferenceAndProceed();
+    }
+
+    async function checkDifferenceAndProceed() {
+        const userEnteredQty = parseFloat(quantityInput.value);
+
+        try {
+            const response = await fetch('/api/product/check-difference', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    product_id: currentProduct.product_id,
+                    new_quantity: userEnteredQty,
+                    quotations_qty: currentQuotationsTotal
+                })
+            });
+
+            const data = await response.json();
+
+            if (!response.ok) {
+                throw new Error(data.error || 'Check failed');
+            }
+
+            if (data.exceeds_threshold) {
+                // Show warning modal
+                showThresholdWarning(data);
+            } else {
+                // No threshold exceeded, proceed with update
+                await updateQuantity();
+            }
+        } catch (error) {
+            showError('Check Failed', error.message);
+        }
+    }
+
+    function showThresholdWarning(data) {
+        document.getElementById('warn-current').textContent = data.old_quantity;
+        document.getElementById('warn-new').textContent = data.final_qty;
+        const diff = data.difference;
+        const diffText = diff >= 0 ? `+${diff}` : `${diff}`;
+        document.getElementById('warn-diff').textContent = diffText;
+        document.getElementById('warn-threshold').textContent = data.threshold;
+        thresholdModal.classList.remove('hidden');
+        warnProceedBtn.focus();
+    }
+
+    function closeThresholdModalAndReset() {
+        thresholdModal.classList.add('hidden');
+        resetToBarcode();
+    }
+
+    async function closeThresholdModalAndProceed() {
+        thresholdModal.classList.add('hidden');
         await updateQuantity();
     }
 
     confirmCancelBtn.addEventListener('click', closeModalAndReset);
 
-    confirmOkBtn.addEventListener('click', closeModalAndUpdate);
+    confirmOkBtn.addEventListener('click', closeModalAndCheckDifference);
+
+    warnCancelBtn.addEventListener('click', closeThresholdModalAndReset);
+
+    warnProceedBtn.addEventListener('click', closeThresholdModalAndProceed);
 
     // Functions
     async function lookupProduct(barcode) {
