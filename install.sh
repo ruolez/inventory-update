@@ -245,6 +245,43 @@ clean_install() {
     echo ""
 }
 
+# Run database migrations
+run_migrations() {
+    print_msg "Running database migrations..."
+
+    # Wait for database to be ready
+    local max_attempts=30
+    local attempt=0
+    while [[ $attempt -lt $max_attempts ]]; do
+        if docker exec inventory_db pg_isready -U postgres > /dev/null 2>&1; then
+            break
+        fi
+        attempt=$((attempt + 1))
+        sleep 1
+    done
+
+    if [[ $attempt -eq $max_attempts ]]; then
+        print_warning "Database not ready, skipping migrations"
+        return
+    fi
+
+    # Run migration for transaction_log table (add new columns if they don't exist)
+    docker exec inventory_db psql -U postgres -d inventory -c "
+        DO \$\$
+        BEGIN
+            IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'transaction_log' AND column_name = 'user_entered_qty') THEN
+                ALTER TABLE transaction_log ADD COLUMN user_entered_qty REAL;
+            END IF;
+            IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'transaction_log' AND column_name = 'quotations_qty') THEN
+                ALTER TABLE transaction_log ADD COLUMN quotations_qty REAL DEFAULT 0;
+            END IF;
+            IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'transaction_log' AND column_name = 'purchase_orders_qty') THEN
+                ALTER TABLE transaction_log ADD COLUMN purchase_orders_qty REAL DEFAULT 0;
+            END IF;
+        END \$\$;
+    " > /dev/null 2>&1 && print_success "Database migrations completed" || print_warning "Migration check completed"
+}
+
 # Update from GitHub
 update_installation() {
     print_msg "Starting update..." "$YELLOW"
@@ -287,6 +324,9 @@ update_installation() {
 
     print_msg "Starting containers..."
     docker compose -f docker-compose.prod.yml -p "$COMPOSE_PROJECT" up -d
+
+    # Run database migrations for existing installations
+    run_migrations
 
     # Clean up old images
     print_msg "Cleaning up old images..."

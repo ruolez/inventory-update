@@ -173,18 +173,21 @@ class PostgresManager:
 
     def log_transaction(self, username, store_nickname, product_id, product_upc,
                         product_sku, product_description, old_quantity, new_quantity,
-                        difference, status, error_message=None):
-        """Log a transaction"""
+                        difference, status, error_message=None,
+                        user_entered_qty=None, quotations_qty=0, purchase_orders_qty=0):
+        """Log a transaction with detailed breakdown"""
         with self.get_connection() as conn:
             with conn.cursor() as cur:
                 cur.execute("""
                     INSERT INTO transaction_log
                     (username, store_nickname, product_id, product_upc, product_sku,
                      product_description, old_quantity, new_quantity, difference,
+                     user_entered_qty, quotations_qty, purchase_orders_qty,
                      status, error_message)
-                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
                 """, (username, store_nickname, product_id, product_upc, product_sku,
                       product_description, old_quantity, new_quantity, difference,
+                      user_entered_qty, quotations_qty, purchase_orders_qty,
                       status, error_message))
 
     def get_transactions(self, limit=100, offset=0, status=None, username=None):

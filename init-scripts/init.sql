@@ -38,10 +38,27 @@ CREATE TABLE IF NOT EXISTS transaction_log (
     old_quantity REAL,
     new_quantity REAL NOT NULL,
     difference REAL,
+    user_entered_qty REAL,
+    quotations_qty REAL DEFAULT 0,
+    purchase_orders_qty REAL DEFAULT 0,
     status VARCHAR(20) DEFAULT 'pending',
     error_message TEXT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
+
+-- Migration: Add new columns to existing table (idempotent)
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'transaction_log' AND column_name = 'user_entered_qty') THEN
+        ALTER TABLE transaction_log ADD COLUMN user_entered_qty REAL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'transaction_log' AND column_name = 'quotations_qty') THEN
+        ALTER TABLE transaction_log ADD COLUMN quotations_qty REAL DEFAULT 0;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'transaction_log' AND column_name = 'purchase_orders_qty') THEN
+        ALTER TABLE transaction_log ADD COLUMN purchase_orders_qty REAL DEFAULT 0;
+    END IF;
+END $$;
 
 -- Session tracking
 CREATE TABLE IF NOT EXISTS sessions (

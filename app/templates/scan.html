@@ -124,6 +124,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // State
     let currentProduct = null;
+    let currentQuotationsTotal = 0;
+    let currentPurchaseOrdersTotal = 0;
 
     // Initialize
     focusBarcodeInput();
@@ -218,6 +220,8 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     async function fetchQuotations(upc) {
+        // Reset state - quotations section stays hidden but we fetch data for calculations
+        currentQuotationsTotal = 0;
         quotationsSection.classList.add('hidden');
         quotationsList.innerHTML = '';
         quotationsTotal.textContent = '';
@@ -230,6 +234,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 return;
             }
 
+            // Store total for update calculation
+            currentQuotationsTotal = data.total_qty || 0;
+
+            // Build HTML but don't show the section (hidden per requirements)
             let html = '';
             for (const q of data.quotations) {
                 const storeClass = q.store_configured ? '' : 'warning';
@@ -248,13 +256,15 @@ document.addEventListener('DOMContentLoaded', () => {
 
             quotationsList.innerHTML = html;
             quotationsTotal.innerHTML = `<strong>Total in Quotations:</strong> ${data.total_qty}`;
-            quotationsSection.classList.remove('hidden');
+            // Section stays hidden - do NOT show quotationsSection
         } catch (error) {
             console.error('Failed to fetch quotations:', error);
         }
     }
 
     async function fetchPurchaseOrders(upc) {
+        // Reset state
+        currentPurchaseOrdersTotal = 0;
         purchaseOrdersSection.classList.add('hidden');
         purchaseOrdersList.innerHTML = '';
         purchaseOrdersTotal.textContent = '';
@@ -266,6 +276,9 @@ document.addEventListener('DOMContentLoaded', () => {
             if (!response.ok || !data.purchase_orders || data.purchase_orders.length === 0) {
                 return;
             }
+
+            // Store total for history (informational only, not added to final qty)
+            currentPurchaseOrdersTotal = data.total_qty || 0;
 
             let html = '';
             for (const po of data.purchase_orders) {
@@ -316,7 +329,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     async function updateQuantity() {
-        const newQuantity = parseFloat(quantityInput.value);
+        const userEnteredQty = parseFloat(quantityInput.value);
 
         try {
             submitBtn.disabled = true;
@@ -327,7 +340,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     product_id: currentProduct.product_id,
-                    new_quantity: newQuantity
+                    new_quantity: userEnteredQty,
+                    quotations_qty: currentQuotationsTotal,
+                    purchase_orders_qty: currentPurchaseOrdersTotal
                 })
             });
 
@@ -337,7 +352,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 throw new Error(data.error || 'Update failed');
             }
 
-            showSuccess(`${currentProduct.product_description} updated to ${newQuantity}`);
+            // Show final quantity (user entered + quotations)
+            const finalQty = data.new_quantity;
+            showSuccess(`${currentProduct.product_description} updated to ${finalQty}`);
 
             // Auto-reset after 2 seconds
             setTimeout(() => {
@@ -373,6 +390,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function resetToBarcode() {
         currentProduct = null;
+        currentQuotationsTotal = 0;
+        currentPurchaseOrdersTotal = 0;
         barcodeInput.value = '';
         quantityInput.value = '';
 

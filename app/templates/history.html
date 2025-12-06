@@ -37,7 +37,10 @@
                         <th>User</th>
                         <th>Product</th>
                         <th>Old Qty</th>
-                        <th>New Qty</th>
+                        <th>Entered</th>
+                        <th>+ Quotes</th>
+                        <th>+ POs</th>
+                        <th>Final</th>
                         <th>Diff</th>
                         <th>Status</th>
                     </tr>
@@ -113,7 +116,10 @@ async function loadTransactions() {
                 <td>${tx.username}</td>
                 <td title="${tx.product_upc}">${tx.product_description || tx.product_upc || '-'}</td>
                 <td>${tx.old_quantity ?? '-'}</td>
-                <td>${tx.new_quantity}</td>
+                <td>${tx.user_entered_qty ?? '-'}</td>
+                <td class="${tx.quotations_qty > 0 ? 'text-success' : ''}">${tx.quotations_qty ?? '-'}</td>
+                <td class="text-secondary">${tx.purchase_orders_qty ?? '-'}</td>
+                <td><strong>${tx.new_quantity}</strong></td>
                 <td class="${tx.difference > 0 ? 'text-success' : tx.difference < 0 ? 'text-error' : ''}">
                     ${tx.difference !== null ? (tx.difference > 0 ? '+' : '') + tx.difference : '-'}
                 </td>

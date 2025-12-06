@@ -231,20 +231,27 @@ def api_product_lookup():
 @app.route('/api/product/update-quantity', methods=['POST'])
 @login_required
 def api_update_quantity():
-    """Update product quantity"""
+    """Update product quantity (user entered + quotations qty)"""
     data = request.get_json()
     product_id = data.get('product_id')
-    new_quantity = data.get('new_quantity')
+    user_entered_qty = data.get('new_quantity')
+    quotations_qty = data.get('quotations_qty', 0) or 0
+    purchase_orders_qty = data.get('purchase_orders_qty', 0) or 0
 
     if product_id is None:
         return jsonify({'error': 'Product ID is required'}), 400
-    if new_quantity is None:
+    if user_entered_qty is None:
         return jsonify({'error': 'New quantity is required'}), 400
 
     try:
-        new_quantity = float(new_quantity)
+        user_entered_qty = float(user_entered_qty)
+        quotations_qty = float(quotations_qty)
+        purchase_orders_qty = float(purchase_orders_qty)
     except ValueError:
         return jsonify({'error': 'Invalid quantity value'}), 400
+
+    # Calculate final quantity: user entered + quotations (NOT purchase orders)
+    final_qty = user_entered_qty + quotations_qty
 
     store_db = get_primary_store_db()
     admin_db = get_admin_db()
@@ -262,30 +269,30 @@ def api_update_quantity():
             return jsonify({'error': 'Product not found'}), 404
 
         old_quantity = product['QuantOnHand'] or 0
-        difference = new_quantity - old_quantity
+        difference = final_qty - old_quantity
         current_time = get_current_time()
 
-        # Update Items_tbl in store DB
+        # Update Items_tbl in store DB with final quantity
         store_db.update_product_quantity(
             product_id=product_id,
-            new_quantity=new_quantity,
+            new_quantity=final_qty,
             last_count_date=current_time
         )
 
-        # Record in ManualInventoryUpdate (Admin DB)
+        # Record in ManualInventoryUpdate (Admin DB) - uses final qty
         admin_db.record_inventory_update(
             username=session.get('username'),
             product_description=product['ProductDescription'],
             product_sku=product['ProductSKU'],
             product_upc=product['ProductUPC'],
             old_qty=old_quantity,
-            new_qty=new_quantity,
+            new_qty=final_qty,
             diff_qty=difference,
             update_type='Inventory',
             date_created=current_time
         )
 
-        # Log to PostgreSQL
+        # Log to PostgreSQL with detailed breakdown
         pg_manager.log_transaction(
             username=session.get('username'),
             store_nickname=primary_store['nickname'] if primary_store else 'unknown',
@@ -294,16 +301,22 @@ def api_update_quantity():
             product_sku=product['ProductSKU'],
             product_description=product['ProductDescription'],
             old_quantity=old_quantity,
-            new_quantity=new_quantity,
+            new_quantity=final_qty,
             difference=difference,
-            status='success'
+            status='success',
+            user_entered_qty=user_entered_qty,
+            quotations_qty=quotations_qty,
+            purchase_orders_qty=purchase_orders_qty
         )
 
         return jsonify({
             'success': True,
             'product_id': product_id,
             'old_quantity': old_quantity,
-            'new_quantity': new_quantity,
+            'new_quantity': final_qty,
+            'user_entered_qty': user_entered_qty,
+            'quotations_qty': quotations_qty,
+            'purchase_orders_qty': purchase_orders_qty,
             'difference': difference
         })
     except Exception as e:
@@ -317,10 +330,13 @@ def api_update_quantity():
                 product_sku=data.get('product_sku', ''),
                 product_description=data.get('product_description', ''),
                 old_quantity=None,
-                new_quantity=new_quantity,
+                new_quantity=final_qty,
                 difference=None,
                 status='failed',
-                error_message=str(e)
+                error_message=str(e),
+                user_entered_qty=user_entered_qty,
+                quotations_qty=quotations_qty,
+                purchase_orders_qty=purchase_orders_qty
             )
         except:
             pass

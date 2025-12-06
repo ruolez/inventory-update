@@ -1,4 +1,21 @@
 ***S2S DB TABLES
+CREATE TABLE [Items_BinLocations] (
+  [id] int identity(1, 1) not null primary key,
+  [CreatedAt] datetime not null CONSTRAINT [items_binlocations_createdat_default] DEFAULT SYSUTCDATETIME(),
+  [ProductUPC] varchar(255) null,
+  [ProductDescription] varchar(255) null,
+  [Qty_Cases] INT null,
+  [BinLocationID] INT null,
+  [LastUpdate] datetime not null CONSTRAINT [items_binlocations_lastupdate_default] DEFAULT SYSUTCDATETIME(),
+  [int1] INT null,
+  [txt1] varchar(255) null
+)
+
+[dbo].[BinLocations_tbl](
+	[BinLocationID] [int] IDENTITY(1,1) NOT NULL,
+	[BinLocation] [nvarchar](50) NULL,
+
+
 [dbo].[Trustees_tbl](
 	[AutoID] [int] IDENTITY(1,1) NOT NULL,
 	[EmployeeID] [int] NULL,
