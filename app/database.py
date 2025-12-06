@@ -427,11 +427,11 @@ class MSSQLManager:
     # ==================== Quotation Details (Store DB) ====================
 
     def get_product_in_quotation(self, quotation_id, product_upc):
-        """Get product quantity from QuotationsDetails_tbl"""
+        """Get total product quantity from QuotationsDetails_tbl (sum of all lines)"""
         with self.get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute("""
-                SELECT Qty
+                SELECT SUM(Qty) AS Qty
                 FROM QuotationsDetails_tbl
                 WHERE QuotationID = ? AND ProductUPC = ?
             """, (quotation_id, product_upc))
@@ -458,11 +458,11 @@ class MSSQLManager:
             return result
 
     def get_product_in_purchase_order(self, po_id, product_upc):
-        """Get product quantity from PurchaseOrdersDetails_tbl"""
+        """Get total product quantity from PurchaseOrdersDetails_tbl (sum of all lines)"""
         with self.get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute("""
-                SELECT QtyOrdered
+                SELECT SUM(QtyOrdered) AS QtyOrdered
                 FROM PurchaseOrdersDetails_tbl
                 WHERE PoID = ? AND ProductUPC = ?
             """, (po_id, product_upc))
