@@ -646,7 +646,7 @@ body {
     margin: var(--spacing-md) 0;
 }
 
-/* Responsive adjustments */
+/* Responsive adjustments - Mobile (max 480px) */
 @media (max-width: 480px) {
     .nav-bar {
         flex-direction: column;
@@ -673,6 +673,76 @@ body {
 
     .modal-actions .btn {
         width: 100%;
+    }
+}
+
+/* Tablet breakpoint (768px+) */
+@media (min-width: 768px) {
+    .main-content {
+        max-width: none;
+        padding: var(--spacing-xl);
+    }
+
+    .modal-content {
+        max-width: 500px;
+    }
+
+    .login-card {
+        max-width: 450px;
+    }
+
+    .bottom-nav {
+        height: 56px;
+    }
+
+    .bottom-nav-item {
+        font-size: 0.875rem;
+    }
+
+    .card {
+        padding: var(--spacing-xl);
+    }
+}
+
+/* Desktop breakpoint - optimized for 1280x800 */
+@media (min-width: 1024px) {
+    .main-content {
+        padding: var(--spacing-xl) 48px;
+        padding-bottom: 80px;
+    }
+
+    .modal-content {
+        max-width: 600px;
+    }
+
+    .bottom-nav {
+        height: 60px;
+    }
+
+    .bottom-nav-item {
+        font-size: 1rem;
+    }
+
+    .table th,
+    .table td {
+        padding: var(--spacing-lg);
+    }
+
+    .form-input.large {
+        font-size: 1.75rem;
+        padding: var(--spacing-xl);
+    }
+
+    .store-item {
+        padding: var(--spacing-lg);
+    }
+
+    .store-actions {
+        gap: var(--spacing-sm);
+    }
+
+    #toast-container {
+        bottom: 80px;
     }
 }
 
