@@ -154,6 +154,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let currentProduct = null;
     let currentQuotationsTotal = 0;
     let currentPurchaseOrdersTotal = 0;
+    let currentTopBinsTotal = 0;
 
     // Initialize
     focusBarcodeInput();
@@ -217,7 +218,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 body: JSON.stringify({
                     product_id: currentProduct.product_id,
                     new_quantity: userEnteredQty,
-                    quotations_qty: currentQuotationsTotal
+                    quotations_qty: currentQuotationsTotal,
+                    top_bins_qty: currentTopBinsTotal
                 })
             });
 
@@ -389,6 +391,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     async function fetchTopBins(upc) {
+        currentTopBinsTotal = 0;
         topBinsSection.classList.add('hidden');
         topBinsTotal.textContent = '';
 
@@ -400,8 +403,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 return;
             }
 
+            currentTopBinsTotal = data.total_qty || 0;
             topBinsTotal.innerHTML = `<strong>Top Bins:</strong> ${data.total_qty}`;
-            topBinsSection.classList.remove('hidden');
+            // Keep section hidden - top bins is now included in calculation like quotations
         } catch (error) {
             console.error('Failed to fetch top bins:', error);
         }
@@ -447,7 +451,8 @@ document.addEventListener('DOMContentLoaded', () => {
                     product_id: currentProduct.product_id,
                     new_quantity: userEnteredQty,
                     quotations_qty: currentQuotationsTotal,
-                    purchase_orders_qty: currentPurchaseOrdersTotal
+                    purchase_orders_qty: currentPurchaseOrdersTotal,
+                    top_bins_qty: currentTopBinsTotal
                 })
             });
 
@@ -497,6 +502,7 @@ document.addEventListener('DOMContentLoaded', () => {
         currentProduct = null;
         currentQuotationsTotal = 0;
         currentPurchaseOrdersTotal = 0;
+        currentTopBinsTotal = 0;
         barcodeInput.value = '';
         quantityInput.value = '';
 

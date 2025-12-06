@@ -234,12 +234,13 @@ def api_product_lookup():
 @app.route('/api/product/update-quantity', methods=['POST'])
 @login_required
 def api_update_quantity():
-    """Update product quantity (user entered + quotations qty)"""
+    """Update product quantity (user entered + quotations qty + top bins qty)"""
     data = request.get_json()
     product_id = data.get('product_id')
     user_entered_qty = data.get('new_quantity')
     quotations_qty = data.get('quotations_qty', 0) or 0
     purchase_orders_qty = data.get('purchase_orders_qty', 0) or 0
+    top_bins_qty = data.get('top_bins_qty', 0) or 0
 
     if product_id is None:
         return jsonify({'error': 'Product ID is required'}), 400
@@ -250,11 +251,12 @@ def api_update_quantity():
         user_entered_qty = float(user_entered_qty)
         quotations_qty = float(quotations_qty)
         purchase_orders_qty = float(purchase_orders_qty)
+        top_bins_qty = float(top_bins_qty)
     except ValueError:
         return jsonify({'error': 'Invalid quantity value'}), 400
 
-    # Calculate final quantity: user entered + quotations (NOT purchase orders)
-    final_qty = user_entered_qty + quotations_qty
+    # Calculate final quantity: user entered + quotations + top bins (NOT purchase orders)
+    final_qty = user_entered_qty + quotations_qty + top_bins_qty
 
     store_db = get_primary_store_db()
     admin_db = get_admin_db()
@@ -309,7 +311,8 @@ def api_update_quantity():
             status='success',
             user_entered_qty=user_entered_qty,
             quotations_qty=quotations_qty,
-            purchase_orders_qty=purchase_orders_qty
+            purchase_orders_qty=purchase_orders_qty,
+            top_bins_qty=top_bins_qty
         )
 
         return jsonify({
@@ -320,6 +323,7 @@ def api_update_quantity():
             'user_entered_qty': user_entered_qty,
             'quotations_qty': quotations_qty,
             'purchase_orders_qty': purchase_orders_qty,
+            'top_bins_qty': top_bins_qty,
             'difference': difference
         })
     except Exception as e:
@@ -339,7 +343,8 @@ def api_update_quantity():
                 error_message=str(e),
                 user_entered_qty=user_entered_qty,
                 quotations_qty=quotations_qty,
-                purchase_orders_qty=purchase_orders_qty
+                purchase_orders_qty=purchase_orders_qty,
+                top_bins_qty=top_bins_qty
             )
         except:
             pass
@@ -709,6 +714,7 @@ def api_check_difference():
     product_id = data.get('product_id')
     user_entered_qty = data.get('new_quantity')
     quotations_qty = data.get('quotations_qty', 0) or 0
+    top_bins_qty = data.get('top_bins_qty', 0) or 0
 
     if product_id is None:
         return jsonify({'error': 'Product ID is required'}), 400
@@ -718,11 +724,12 @@ def api_check_difference():
     try:
         user_entered_qty = float(user_entered_qty)
         quotations_qty = float(quotations_qty)
+        top_bins_qty = float(top_bins_qty)
     except ValueError:
         return jsonify({'error': 'Invalid quantity value'}), 400
 
-    # Calculate final quantity
-    final_qty = user_entered_qty + quotations_qty
+    # Calculate final quantity: user entered + quotations + top bins
+    final_qty = user_entered_qty + quotations_qty + top_bins_qty
 
     store_db = get_primary_store_db()
     if not store_db:
