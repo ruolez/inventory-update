@@ -154,7 +154,7 @@ services:
     container_name: inventory_app
     restart: unless-stopped
     ports:
-      - "5557:5557"
+      - "80:5557"
     environment:
       FLASK_APP: app.main:app
       FLASK_ENV: production
@@ -226,7 +226,7 @@ clean_install() {
     sleep 10
 
     # Check health
-    if curl -s "http://localhost:5557/health" > /dev/null 2>&1; then
+    if curl -s "http://localhost/health" > /dev/null 2>&1; then
         print_success "Installation completed successfully!"
     else
         print_warning "Services are starting up. Please wait a moment..."
@@ -238,7 +238,7 @@ clean_install() {
     print_msg "============================================" "$GREEN"
     echo ""
     print_msg "  Access the application at:"
-    print_msg "  http://${SERVER_IP}:5557" "$YELLOW"
+    print_msg "  http://${SERVER_IP}" "$YELLOW"
     echo ""
     print_msg "  Installation directory: $INSTALL_DIR"
     print_msg "  Data volume: $DATA_VOLUME"
@@ -300,7 +300,7 @@ update_installation() {
     sleep 10
 
     # Check health
-    if curl -s "http://localhost:5557/health" > /dev/null 2>&1; then
+    if curl -s "http://localhost/health" > /dev/null 2>&1; then
         print_success "Update completed successfully!"
     else
         print_warning "Services are starting up. Please wait a moment..."
@@ -314,7 +314,7 @@ update_installation() {
     print_msg "  Update completed!" "$GREEN"
     print_msg "============================================" "$GREEN"
     echo ""
-    print_msg "  Application: http://${SERVER_IP}:5557" "$YELLOW"
+    print_msg "  Application: http://${SERVER_IP}" "$YELLOW"
     print_msg "  Data volume preserved: $DATA_VOLUME"
     echo ""
 }
@@ -397,10 +397,10 @@ show_status() {
 
     # Health check
     print_msg "Health Check:"
-    if curl -s "http://localhost:5557/health" > /dev/null 2>&1; then
+    if curl -s "http://localhost/health" > /dev/null 2>&1; then
         print_success "  Application is running"
         SERVER_IP=$(get_ip_address)
-        print_msg "  URL: http://${SERVER_IP}:5557" "$YELLOW"
+        print_msg "  URL: http://${SERVER_IP}" "$YELLOW"
     else
         print_error "  Application is not responding"
     fi
