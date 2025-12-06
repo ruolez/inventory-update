@@ -45,6 +45,13 @@
             <div id="quotations-total" class="quotations-total"></div>
         </div>
 
+        <!-- Purchase Orders Info -->
+        <div id="purchase-orders-section" class="purchase-orders-section hidden">
+            <h4 class="purchase-orders-title">Pending Purchase Orders</h4>
+            <div id="purchase-orders-list" class="purchase-orders-list"></div>
+            <div id="purchase-orders-total" class="purchase-orders-total"></div>
+        </div>
+
         <div class="flex-between mt-md">
             <button id="cancel-btn" class="btn btn-secondary">Cancel</button>
             <button id="submit-btn" class="btn btn-primary">Update Quantity</button>
@@ -101,6 +108,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const quotationsSection = document.getElementById('quotations-section');
     const quotationsList = document.getElementById('quotations-list');
     const quotationsTotal = document.getElementById('quotations-total');
+    const purchaseOrdersSection = document.getElementById('purchase-orders-section');
+    const purchaseOrdersList = document.getElementById('purchase-orders-list');
+    const purchaseOrdersTotal = document.getElementById('purchase-orders-total');
 
     const barcodeInput = document.getElementById('barcode-input');
     const quantityInput = document.getElementById('quantity-input');
@@ -202,8 +212,9 @@ document.addEventListener('DOMContentLoaded', () => {
         quantityInput.value = '';
         quantityInput.focus();
 
-        // Fetch and display quotations
+        // Fetch and display quotations and purchase orders
         fetchQuotations(product.product_upc);
+        fetchPurchaseOrders(product.product_upc);
     }
 
     async function fetchQuotations(upc) {
@@ -240,6 +251,41 @@ document.addEventListener('DOMContentLoaded', () => {
             quotationsSection.classList.remove('hidden');
         } catch (error) {
             console.error('Failed to fetch quotations:', error);
+        }
+    }
+
+    async function fetchPurchaseOrders(upc) {
+        purchaseOrdersSection.classList.add('hidden');
+        purchaseOrdersList.innerHTML = '';
+        purchaseOrdersTotal.textContent = '';
+
+        try {
+            const response = await fetch(`/api/product/purchase-orders?upc=${encodeURIComponent(upc)}`);
+            const data = await response.json();
+
+            if (!response.ok || !data.purchase_orders || data.purchase_orders.length === 0) {
+                return;
+            }
+
+            let html = '';
+            for (const po of data.purchase_orders) {
+                const errorBadge = po.error ? `<span class="po-error">${po.error}</span>` : '';
+                const qty = po.qty_ordered !== null ? po.qty_ordered : '-';
+
+                html += `
+                    <div class="po-item">
+                        <span class="po-number">${po.po_number}</span>
+                        <span class="po-qty">${qty}</span>
+                        ${errorBadge}
+                    </div>
+                `;
+            }
+
+            purchaseOrdersList.innerHTML = html;
+            purchaseOrdersTotal.innerHTML = `<strong>Total in POs:</strong> ${data.total_qty}`;
+            purchaseOrdersSection.classList.remove('hidden');
+        } catch (error) {
+            console.error('Failed to fetch purchase orders:', error);
         }
     }
 

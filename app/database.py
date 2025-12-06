@@ -436,3 +436,34 @@ class MSSQLManager:
             result = self._row_to_dict(cursor, row)
             cursor.close()
             return result
+
+    # ==================== Purchase Orders (Store DB) ====================
+
+    def get_pending_purchase_orders(self):
+        """Get pending POs from last 90 days with Status = 0 (not received)"""
+        with self.get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute("""
+                SELECT PoID, PoNumber
+                FROM PurchaseOrders_tbl
+                WHERE PoDate >= DATEADD(day, -90, GETDATE())
+                  AND Status = 0
+            """)
+            rows = cursor.fetchall()
+            result = [self._row_to_dict(cursor, row) for row in rows]
+            cursor.close()
+            return result
+
+    def get_product_in_purchase_order(self, po_id, product_upc):
+        """Get product quantity from PurchaseOrdersDetails_tbl"""
+        with self.get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute("""
+                SELECT QtyOrdered
+                FROM PurchaseOrdersDetails_tbl
+                WHERE PoID = ? AND ProductUPC = ?
+            """, (po_id, product_upc))
+            row = cursor.fetchone()
+            result = self._row_to_dict(cursor, row)
+            cursor.close()
+            return result

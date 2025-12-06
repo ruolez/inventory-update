@@ -715,31 +715,31 @@ body {
 .quotations-section {
     background-color: var(--surface-variant);
     border-radius: var(--radius-md);
-    padding: var(--spacing-md);
+    padding: var(--spacing-sm);
     margin-top: var(--spacing-md);
 }
 
 .quotations-title {
-    font-size: 0.875rem;
+    font-size: 0.75rem;
     font-weight: 500;
     color: var(--on-surface-secondary);
-    margin-bottom: var(--spacing-sm);
+    margin-bottom: var(--spacing-xs);
 }
 
 .quotations-list {
     display: flex;
     flex-direction: column;
-    gap: var(--spacing-xs);
+    gap: 2px;
 }
 
 .quotation-item {
     display: flex;
     align-items: center;
-    gap: var(--spacing-sm);
-    padding: var(--spacing-sm);
+    gap: var(--spacing-xs);
+    padding: var(--spacing-xs);
     background-color: var(--surface);
     border-radius: var(--radius-sm);
-    font-size: 0.875rem;
+    font-size: 0.75rem;
 }
 
 .quotation-item.warning {
@@ -750,32 +750,95 @@ body {
 .quotation-store {
     font-weight: 500;
     color: var(--primary);
-    min-width: 60px;
+    min-width: 50px;
+    font-size: 0.7rem;
 }
 
 .quotation-number {
     flex: 1;
     color: var(--on-surface);
+    font-size: 0.7rem;
 }
 
 .quotation-qty {
     font-weight: 600;
     color: var(--on-surface);
-    min-width: 40px;
+    min-width: 35px;
     text-align: right;
+    font-size: 0.75rem;
 }
 
 .quotation-error {
-    font-size: 0.75rem;
+    font-size: 0.65rem;
     color: var(--error);
-    margin-left: var(--spacing-sm);
+    margin-left: var(--spacing-xs);
 }
 
 .quotations-total {
-    margin-top: var(--spacing-md);
-    padding-top: var(--spacing-sm);
+    margin-top: var(--spacing-sm);
+    padding-top: var(--spacing-xs);
     border-top: 1px solid var(--outline);
-    font-size: 1rem;
+    font-size: 0.8rem;
+    color: var(--on-surface);
+    text-align: right;
+}
+
+/* Purchase Orders section */
+.purchase-orders-section {
+    background-color: var(--surface-variant);
+    border-radius: var(--radius-md);
+    padding: var(--spacing-sm);
+    margin-top: var(--spacing-sm);
+}
+
+.purchase-orders-title {
+    font-size: 0.75rem;
+    font-weight: 500;
+    color: var(--on-surface-secondary);
+    margin-bottom: var(--spacing-xs);
+}
+
+.purchase-orders-list {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.po-item {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-xs);
+    padding: var(--spacing-xs);
+    background-color: var(--surface);
+    border-radius: var(--radius-sm);
+    font-size: 0.75rem;
+}
+
+.po-number {
+    flex: 1;
+    color: var(--on-surface);
+    font-size: 0.7rem;
+}
+
+.po-qty {
+    font-weight: 600;
+    color: var(--on-surface);
+    min-width: 35px;
+    text-align: right;
+    font-size: 0.75rem;
+}
+
+.po-error {
+    font-size: 0.65rem;
+    color: var(--error);
+    margin-left: var(--spacing-xs);
+}
+
+.purchase-orders-total {
+    margin-top: var(--spacing-sm);
+    padding-top: var(--spacing-xs);
+    border-top: 1px solid var(--outline);
+    font-size: 0.8rem;
     color: var(--on-surface);
     text-align: right;
 }

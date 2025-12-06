@@ -419,6 +419,55 @@ def api_product_quotations():
         return jsonify({'error': f'Failed to get quotations: {str(e)}'}), 500
 
 
+@app.route('/api/product/purchase-orders')
+@login_required
+def api_product_purchase_orders():
+    """Get pending purchase orders containing this product"""
+    upc = request.args.get('upc', '').strip()
+
+    if not upc:
+        return jsonify({'error': 'UPC is required'}), 400
+
+    store_db = get_primary_store_db()
+    if not store_db:
+        return jsonify({'error': 'Primary store not configured'}), 503
+
+    try:
+        pending_pos = store_db.get_pending_purchase_orders()
+        results = []
+        total_qty = 0
+
+        for po in pending_pos:
+            po_id = po.get('PoID')
+            po_number = po.get('PoNumber')
+
+            if not po_id:
+                continue
+
+            try:
+                product = store_db.get_product_in_purchase_order(po_id, upc)
+                if product and product.get('QtyOrdered'):
+                    qty = float(product['QtyOrdered'])
+                    results.append({
+                        'po_number': po_number,
+                        'qty_ordered': qty
+                    })
+                    total_qty += qty
+            except Exception as e:
+                results.append({
+                    'po_number': po_number,
+                    'qty_ordered': None,
+                    'error': str(e)
+                })
+
+        return jsonify({
+            'purchase_orders': results,
+            'total_qty': total_qty
+        })
+    except Exception as e:
+        return jsonify({'error': f'Failed to get purchase orders: {str(e)}'}), 500
+
+
 # ==================== CONFIG API ====================
 
 @app.route('/api/config/status')
