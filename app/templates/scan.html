@@ -1,0 +1,346 @@
+{% extends "base.html" %}
+
+{% block title %}Scan - Inventory Update{% endblock %}
+
+{% block content %}
+<div class="scan-container">
+    <!-- Barcode Input -->
+    <div id="barcode-section" class="card">
+        <div class="scan-input-container">
+            <input
+                type="text"
+                id="barcode-input"
+                class="form-input large"
+                placeholder="Scan or enter barcode"
+                autocomplete="off"
+                autofocus
+            >
+        </div>
+        <p class="text-secondary text-center">Scan a barcode or type it and press Enter</p>
+    </div>
+
+    <!-- Product Info (hidden initially) -->
+    <div id="product-section" class="card hidden">
+        <div id="product-info" class="product-info">
+            <div class="product-name" id="product-name">Product Name</div>
+        </div>
+
+        <div class="scan-input-container">
+            <label class="scan-label" for="quantity-input">Enter New Quantity</label>
+            <input
+                type="number"
+                id="quantity-input"
+                class="form-input large"
+                placeholder="0"
+                min="0"
+                step="any"
+                autocomplete="off"
+            >
+        </div>
+
+        <!-- Quotations Info -->
+        <div id="quotations-section" class="quotations-section hidden">
+            <h4 class="quotations-title">Pending Quotations</h4>
+            <div id="quotations-list" class="quotations-list"></div>
+            <div id="quotations-total" class="quotations-total"></div>
+        </div>
+
+        <div class="flex-between mt-md">
+            <button id="cancel-btn" class="btn btn-secondary">Cancel</button>
+            <button id="submit-btn" class="btn btn-primary">Update Quantity</button>
+        </div>
+    </div>
+
+    <!-- Error display -->
+    <div id="error-section" class="card hidden">
+        <div class="text-center">
+            <div class="text-error" style="font-size: 3rem; margin-bottom: var(--spacing-md);">❌</div>
+            <h3 class="text-error" id="error-title">Error</h3>
+            <p class="text-secondary" id="error-message">An error occurred</p>
+            <button id="error-ok-btn" class="btn btn-primary mt-md">OK</button>
+        </div>
+    </div>
+
+    <!-- Success display -->
+    <div id="success-section" class="card hidden">
+        <div class="text-center">
+            <div class="text-success" style="font-size: 3rem; margin-bottom: var(--spacing-md);">✓</div>
+            <h3 class="text-success">Update Successful</h3>
+            <p class="text-secondary" id="success-message">Quantity updated</p>
+        </div>
+    </div>
+</div>
+
+<!-- Quantity Confirmation Modal -->
+<div id="quantity-modal" class="modal hidden">
+    <div class="modal-content">
+        <h2>Confirm Quantity Update</h2>
+        <div class="product-info">
+            <div class="product-name" id="confirm-product-name">Product Name</div>
+        </div>
+        <div class="quantity-display">
+            <span id="confirm-quantity">0</span>
+        </div>
+        <p class="text-center text-secondary">Set quantity to this value?</p>
+        <div class="modal-actions">
+            <button id="confirm-cancel-btn" class="btn btn-secondary">Cancel</button>
+            <button id="confirm-ok-btn" class="btn btn-primary">OK</button>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    // Elements
+    const barcodeSection = document.getElementById('barcode-section');
+    const productSection = document.getElementById('product-section');
+    const errorSection = document.getElementById('error-section');
+    const successSection = document.getElementById('success-section');
+    const quotationsSection = document.getElementById('quotations-section');
+    const quotationsList = document.getElementById('quotations-list');
+    const quotationsTotal = document.getElementById('quotations-total');
+
+    const barcodeInput = document.getElementById('barcode-input');
+    const quantityInput = document.getElementById('quantity-input');
+    const cancelBtn = document.getElementById('cancel-btn');
+    const submitBtn = document.getElementById('submit-btn');
+    const errorOkBtn = document.getElementById('error-ok-btn');
+
+    const quantityModal = document.getElementById('quantity-modal');
+    const confirmCancelBtn = document.getElementById('confirm-cancel-btn');
+    const confirmOkBtn = document.getElementById('confirm-ok-btn');
+
+    // State
+    let currentProduct = null;
+
+    // Initialize
+    focusBarcodeInput();
+
+    // Barcode input handler
+    barcodeInput.addEventListener('keypress', async (e) => {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            const barcode = barcodeInput.value.trim();
+            if (barcode) {
+                await lookupProduct(barcode);
+            }
+        }
+    });
+
+    // Quantity input handler
+    quantityInput.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            showQuantityConfirmation();
+        }
+    });
+
+    // Submit button
+    submitBtn.addEventListener('click', showQuantityConfirmation);
+
+    // Cancel button - clear and start over
+    cancelBtn.addEventListener('click', resetToBarcode);
+
+    // Error OK button
+    errorOkBtn.addEventListener('click', resetToBarcode);
+
+    // Modal buttons and keyboard handler
+    let modalKeyHandler = null;
+
+    function closeModalAndReset() {
+        quantityModal.classList.add('hidden');
+        if (modalKeyHandler) {
+            document.removeEventListener('keydown', modalKeyHandler);
+            modalKeyHandler = null;
+        }
+        resetToBarcode();
+    }
+
+    async function closeModalAndUpdate() {
+        quantityModal.classList.add('hidden');
+        if (modalKeyHandler) {
+            document.removeEventListener('keydown', modalKeyHandler);
+            modalKeyHandler = null;
+        }
+        await updateQuantity();
+    }
+
+    confirmCancelBtn.addEventListener('click', closeModalAndReset);
+
+    confirmOkBtn.addEventListener('click', closeModalAndUpdate);
+
+    // Functions
+    async function lookupProduct(barcode) {
+        try {
+            barcodeInput.disabled = true;
+            const response = await fetch(`/api/product/lookup?barcode=${encodeURIComponent(barcode)}`);
+            const data = await response.json();
+
+            if (!response.ok) {
+                throw new Error(data.error || 'Product not found');
+            }
+
+            currentProduct = data;
+            showProductSection(data);
+        } catch (error) {
+            showError('Product Not Found', error.message);
+        } finally {
+            barcodeInput.disabled = false;
+        }
+    }
+
+    function showProductSection(product) {
+        document.getElementById('product-name').textContent = product.product_description;
+
+        barcodeSection.classList.add('hidden');
+        errorSection.classList.add('hidden');
+        successSection.classList.add('hidden');
+        productSection.classList.remove('hidden');
+
+        quantityInput.value = '';
+        quantityInput.focus();
+
+        // Fetch and display quotations
+        fetchQuotations(product.product_upc);
+    }
+
+    async function fetchQuotations(upc) {
+        quotationsSection.classList.add('hidden');
+        quotationsList.innerHTML = '';
+        quotationsTotal.textContent = '';
+
+        try {
+            const response = await fetch(`/api/product/quotations?upc=${encodeURIComponent(upc)}`);
+            const data = await response.json();
+
+            if (!response.ok || !data.quotations || data.quotations.length === 0) {
+                return;
+            }
+
+            let html = '';
+            for (const q of data.quotations) {
+                const storeClass = q.store_configured ? '' : 'warning';
+                const errorBadge = q.error ? `<span class="quotation-error">${q.error}</span>` : '';
+                const qty = q.qty_ordered !== null ? q.qty_ordered : '-';
+
+                html += `
+                    <div class="quotation-item ${storeClass}">
+                        <span class="quotation-store">${q.source_db}</span>
+                        <span class="quotation-number">${q.quotation_number}</span>
+                        <span class="quotation-qty">${qty}</span>
+                        ${errorBadge}
+                    </div>
+                `;
+            }
+
+            quotationsList.innerHTML = html;
+            quotationsTotal.innerHTML = `<strong>Total in Quotations:</strong> ${data.total_qty}`;
+            quotationsSection.classList.remove('hidden');
+        } catch (error) {
+            console.error('Failed to fetch quotations:', error);
+        }
+    }
+
+    function showQuantityConfirmation() {
+        const quantity = quantityInput.value.trim();
+        if (quantity === '' || isNaN(parseFloat(quantity))) {
+            showToast('Please enter a valid quantity', 'error');
+            quantityInput.focus();
+            return;
+        }
+
+        document.getElementById('confirm-product-name').textContent = currentProduct.product_description;
+        document.getElementById('confirm-quantity').textContent = quantity;
+        quantityModal.classList.remove('hidden');
+
+        // Add keyboard handler for Enter/Escape
+        modalKeyHandler = (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                closeModalAndUpdate();
+            } else if (e.key === 'Escape') {
+                e.preventDefault();
+                closeModalAndReset();
+            }
+        };
+        document.addEventListener('keydown', modalKeyHandler);
+        confirmOkBtn.focus();
+    }
+
+    async function updateQuantity() {
+        const newQuantity = parseFloat(quantityInput.value);
+
+        try {
+            submitBtn.disabled = true;
+            submitBtn.textContent = 'Updating...';
+
+            const response = await fetch('/api/product/update-quantity', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    product_id: currentProduct.product_id,
+                    new_quantity: newQuantity
+                })
+            });
+
+            const data = await response.json();
+
+            if (!response.ok) {
+                throw new Error(data.error || 'Update failed');
+            }
+
+            showSuccess(`${currentProduct.product_description} updated to ${newQuantity}`);
+
+            // Auto-reset after 2 seconds
+            setTimeout(() => {
+                resetToBarcode();
+            }, 2000);
+
+        } catch (error) {
+            showError('Update Failed', error.message);
+        } finally {
+            submitBtn.disabled = false;
+            submitBtn.textContent = 'Update Quantity';
+        }
+    }
+
+    function showError(title, message) {
+        document.getElementById('error-title').textContent = title;
+        document.getElementById('error-message').textContent = message;
+
+        barcodeSection.classList.add('hidden');
+        productSection.classList.add('hidden');
+        successSection.classList.add('hidden');
+        errorSection.classList.remove('hidden');
+    }
+
+    function showSuccess(message) {
+        document.getElementById('success-message').textContent = message;
+
+        barcodeSection.classList.add('hidden');
+        productSection.classList.add('hidden');
+        errorSection.classList.add('hidden');
+        successSection.classList.remove('hidden');
+    }
+
+    function resetToBarcode() {
+        currentProduct = null;
+        barcodeInput.value = '';
+        quantityInput.value = '';
+
+        productSection.classList.add('hidden');
+        errorSection.classList.add('hidden');
+        successSection.classList.add('hidden');
+        barcodeSection.classList.remove('hidden');
+
+        focusBarcodeInput();
+    }
+
+    function focusBarcodeInput() {
+        setTimeout(() => barcodeInput.focus(), 100);
+    }
+});
+</script>
+{% endblock %}

@@ -1,0 +1,125 @@
+{% extends "base.html" %}
+{% set show_nav = false %}
+
+{% block title %}Login - Inventory Update{% endblock %}
+
+{% block content %}
+<div class="login-container">
+    <div class="card login-card">
+        <h1 class="login-title">Inventory Update</h1>
+
+        <form id="login-form">
+            <div class="form-group">
+                <label class="form-label" for="username">Username</label>
+                <input
+                    type="text"
+                    id="username"
+                    class="form-input large"
+                    placeholder="Enter your username"
+                    autocomplete="username"
+                    autocapitalize="off"
+                    autofocus
+                    required
+                >
+            </div>
+
+            <div id="error-message" class="text-error text-center hidden mb-md"></div>
+
+            <button type="submit" id="login-btn" class="btn btn-primary btn-full">
+                Login
+            </button>
+        </form>
+
+        <!-- Setup link - shown when not configured -->
+        <p id="setup-link" class="text-secondary text-center mt-md hidden">
+            <a href="/settings" style="color: var(--primary);">Configure Settings</a>
+        </p>
+    </div>
+
+    <!-- Gear icon - shown when configured, positioned at bottom -->
+    <a id="settings-gear" href="/settings" class="settings-gear hidden" title="Settings">
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="3"></circle>
+            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+        </svg>
+    </a>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    const form = document.getElementById('login-form');
+    const usernameInput = document.getElementById('username');
+    const errorMessage = document.getElementById('error-message');
+    const loginBtn = document.getElementById('login-btn');
+    const setupLink = document.getElementById('setup-link');
+    const settingsGear = document.getElementById('settings-gear');
+
+    checkConfigStatus();
+
+    async function checkConfigStatus() {
+        try {
+            const response = await fetch('/api/config/status');
+            const data = await response.json();
+
+            if (data.admin_db_configured && data.primary_store_configured) {
+                settingsGear.classList.remove('hidden');
+            } else {
+                setupLink.classList.remove('hidden');
+            }
+        } catch (error) {
+            setupLink.classList.remove('hidden');
+        }
+    }
+
+    form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const username = usernameInput.value.trim();
+
+        if (!username) {
+            showError('Please enter your username');
+            return;
+        }
+
+        loginBtn.disabled = true;
+        loginBtn.textContent = 'Logging in...';
+        hideError();
+
+        try {
+            const response = await fetch('/api/auth/login', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ username })
+            });
+
+            const data = await response.json();
+
+            if (!response.ok) {
+                throw new Error(data.error || 'Login failed');
+            }
+
+            // Redirect to scan page
+            window.location.href = '/scan';
+        } catch (error) {
+            showError(error.message);
+            loginBtn.disabled = false;
+            loginBtn.textContent = 'Login';
+        }
+    });
+
+    function showError(message) {
+        errorMessage.textContent = message;
+        errorMessage.classList.remove('hidden');
+        usernameInput.classList.add('error');
+    }
+
+    function hideError() {
+        errorMessage.classList.add('hidden');
+        usernameInput.classList.remove('error');
+    }
+
+    usernameInput.addEventListener('input', hideError);
+});
+</script>
+{% endblock %}

@@ -1,0 +1,346 @@
+{% extends "base.html" %}
+{% if not logged_in %}
+{% set show_nav = false %}
+{% endif %}
+
+{% block title %}Settings - Inventory Update{% endblock %}
+
+{% block content %}
+<div class="settings-container">
+    <div class="flex-between mb-md">
+        <h1 class="page-title">Settings</h1>
+        {% if not logged_in %}
+        <a href="/login" class="btn btn-secondary btn-sm">Back to Login</a>
+        {% endif %}
+    </div>
+
+    <!-- Admin DB Configuration -->
+    <div class="card">
+        <h2 class="card-title">Admin Database Connection</h2>
+        <p class="text-secondary mb-md">Configure connection to the Admin database for authentication and audit logging.</p>
+
+        <form id="admin-db-form">
+            <div class="form-group">
+                <label class="form-label" for="admin-server">Server</label>
+                <input type="text" id="admin-server" class="form-input" placeholder="e.g., 192.168.1.100" required>
+            </div>
+            <div class="form-group">
+                <label class="form-label" for="admin-database">Database</label>
+                <input type="text" id="admin-database" class="form-input" placeholder="e.g., Admin_DB" required>
+            </div>
+            <div class="form-group">
+                <label class="form-label" for="admin-username">Username</label>
+                <input type="text" id="admin-username" class="form-input" placeholder="Database username" required>
+            </div>
+            <div class="form-group">
+                <label class="form-label" for="admin-password">Password</label>
+                <input type="password" id="admin-password" class="form-input" placeholder="Database password">
+            </div>
+            <div class="flex-between">
+                <button type="button" id="test-admin-btn" class="btn btn-secondary">Test Connection</button>
+                <button type="submit" class="btn btn-primary">Save</button>
+            </div>
+        </form>
+    </div>
+
+    <!-- Store Connections -->
+    <div class="card">
+        <div class="flex-between mb-md">
+            <h2 class="card-title" style="margin-bottom: 0;">Store Connections</h2>
+            <button id="add-store-btn" class="btn btn-primary btn-sm">Add Store</button>
+        </div>
+        <p class="text-secondary mb-md">Configure connections to store databases. The primary store is used for product lookup and inventory updates.</p>
+
+        <div id="stores-list" class="store-list">
+            <!-- Stores will be loaded here -->
+        </div>
+
+        <div id="no-stores" class="empty-state hidden">
+            <div class="empty-state-icon">🏪</div>
+            <p>No store connections configured.</p>
+            <p class="text-secondary">Add a store connection to get started.</p>
+        </div>
+    </div>
+</div>
+
+<!-- Add/Edit Store Modal -->
+<div id="store-modal" class="modal hidden">
+    <div class="modal-content">
+        <h2 id="store-modal-title">Add Store Connection</h2>
+        <form id="store-form">
+            <input type="hidden" id="store-id">
+            <div class="form-group">
+                <label class="form-label" for="store-nickname">Nickname</label>
+                <input type="text" id="store-nickname" class="form-input" placeholder="e.g., S2S, Store2" required>
+            </div>
+            <div class="form-group">
+                <label class="form-label" for="store-server">Server</label>
+                <input type="text" id="store-server" class="form-input" placeholder="e.g., 192.168.1.100" required>
+            </div>
+            <div class="form-group">
+                <label class="form-label" for="store-database">Database</label>
+                <input type="text" id="store-database" class="form-input" placeholder="e.g., S2S_DB" required>
+            </div>
+            <div class="form-group">
+                <label class="form-label" for="store-username">Username</label>
+                <input type="text" id="store-username" class="form-input" placeholder="Database username" required>
+            </div>
+            <div class="form-group">
+                <label class="form-label" for="store-password">Password</label>
+                <input type="password" id="store-password" class="form-input" placeholder="Database password">
+            </div>
+            <div class="form-group">
+                <label class="form-label">
+                    <input type="checkbox" id="store-primary"> Set as Primary Store
+                </label>
+            </div>
+            <div class="modal-actions">
+                <button type="button" id="test-store-btn" class="btn btn-secondary">Test</button>
+                <button type="button" id="cancel-store-btn" class="btn btn-secondary">Cancel</button>
+                <button type="submit" class="btn btn-primary">Save</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    loadAdminDbConfig();
+    loadStores();
+
+    // Admin DB form
+    document.getElementById('admin-db-form').addEventListener('submit', saveAdminDb);
+    document.getElementById('test-admin-btn').addEventListener('click', testAdminDb);
+
+    // Store modal
+    document.getElementById('add-store-btn').addEventListener('click', () => openStoreModal());
+    document.getElementById('store-form').addEventListener('submit', saveStore);
+    document.getElementById('cancel-store-btn').addEventListener('click', closeStoreModal);
+    document.getElementById('test-store-btn').addEventListener('click', testStoreFromModal);
+});
+
+// Admin DB functions
+async function loadAdminDbConfig() {
+    try {
+        const data = await api('/api/config/admin-db');
+        if (data.config) {
+            document.getElementById('admin-server').value = data.config.server || '';
+            document.getElementById('admin-database').value = data.config.database || '';
+            document.getElementById('admin-username').value = data.config.username || '';
+        }
+    } catch (error) {
+        console.error('Failed to load admin config:', error);
+    }
+}
+
+async function saveAdminDb(e) {
+    e.preventDefault();
+    try {
+        await api('/api/config/admin-db', {
+            method: 'POST',
+            body: JSON.stringify({
+                server: document.getElementById('admin-server').value,
+                database: document.getElementById('admin-database').value,
+                username: document.getElementById('admin-username').value,
+                password: document.getElementById('admin-password').value
+            })
+        });
+        showToast('Admin database configuration saved');
+    } catch (error) {
+        showToast(error.message, 'error');
+    }
+}
+
+async function testAdminDb() {
+    try {
+        const data = await api('/api/config/test-admin-db', {
+            method: 'POST',
+            body: JSON.stringify({
+                server: document.getElementById('admin-server').value,
+                database: document.getElementById('admin-database').value,
+                username: document.getElementById('admin-username').value,
+                password: document.getElementById('admin-password').value
+            })
+        });
+        showToast('Connection successful!', 'success');
+    } catch (error) {
+        showToast(error.message, 'error');
+    }
+}
+
+// Store functions
+async function loadStores() {
+    try {
+        const data = await api('/api/config/stores');
+        renderStores(data.stores);
+    } catch (error) {
+        showToast('Failed to load stores', 'error');
+    }
+}
+
+function renderStores(stores) {
+    const list = document.getElementById('stores-list');
+    const noStores = document.getElementById('no-stores');
+
+    if (stores.length === 0) {
+        list.classList.add('hidden');
+        noStores.classList.remove('hidden');
+        return;
+    }
+
+    list.classList.remove('hidden');
+    noStores.classList.add('hidden');
+
+    list.innerHTML = stores.map(store => `
+        <div class="store-item ${store.is_primary ? 'primary' : ''}" data-id="${store.id}">
+            <div class="store-info">
+                <div class="store-nickname">
+                    ${store.nickname}
+                    ${store.is_primary ? '<span class="badge badge-primary">PRIMARY</span>' : ''}
+                </div>
+                <div class="store-server">${store.server} / ${store.database}</div>
+            </div>
+            <div class="store-actions">
+                ${!store.is_primary ? `<button class="btn btn-sm btn-secondary" onclick="setPrimaryStore(${store.id})">Set Primary</button>` : ''}
+                <button class="btn btn-sm btn-secondary" onclick="testStore(${store.id})">Test</button>
+                <button class="btn btn-sm btn-secondary" onclick="editStore(${store.id})">Edit</button>
+                <button class="btn btn-sm btn-danger" onclick="deleteStore(${store.id})">Delete</button>
+            </div>
+        </div>
+    `).join('');
+}
+
+function openStoreModal(store = null) {
+    const modal = document.getElementById('store-modal');
+    const title = document.getElementById('store-modal-title');
+    const form = document.getElementById('store-form');
+
+    if (store) {
+        title.textContent = 'Edit Store Connection';
+        document.getElementById('store-id').value = store.id;
+        document.getElementById('store-nickname').value = store.nickname;
+        document.getElementById('store-server').value = store.server;
+        document.getElementById('store-database').value = store.database;
+        document.getElementById('store-username').value = store.username;
+        document.getElementById('store-password').value = '';
+        document.getElementById('store-primary').checked = store.is_primary;
+    } else {
+        title.textContent = 'Add Store Connection';
+        form.reset();
+        document.getElementById('store-id').value = '';
+    }
+
+    modal.classList.remove('hidden');
+}
+
+function closeStoreModal() {
+    document.getElementById('store-modal').classList.add('hidden');
+}
+
+async function saveStore(e) {
+    e.preventDefault();
+    const storeId = document.getElementById('store-id').value;
+    const data = {
+        nickname: document.getElementById('store-nickname').value,
+        server: document.getElementById('store-server').value,
+        database: document.getElementById('store-database').value,
+        username: document.getElementById('store-username').value,
+        password: document.getElementById('store-password').value,
+        is_primary: document.getElementById('store-primary').checked
+    };
+
+    try {
+        if (storeId) {
+            await api(`/api/config/stores/${storeId}`, {
+                method: 'PUT',
+                body: JSON.stringify(data)
+            });
+            showToast('Store updated');
+        } else {
+            await api('/api/config/stores', {
+                method: 'POST',
+                body: JSON.stringify(data)
+            });
+            showToast('Store added');
+        }
+        closeStoreModal();
+        loadStores();
+    } catch (error) {
+        showToast(error.message, 'error');
+    }
+}
+
+async function testStoreFromModal() {
+    try {
+        // We need to save first if it's a new store, or use existing ID
+        const storeId = document.getElementById('store-id').value;
+        if (storeId) {
+            await testStore(storeId);
+        } else {
+            // Test with modal values directly
+            const data = await api('/api/config/test-admin-db', {
+                method: 'POST',
+                body: JSON.stringify({
+                    server: document.getElementById('store-server').value,
+                    database: document.getElementById('store-database').value,
+                    username: document.getElementById('store-username').value,
+                    password: document.getElementById('store-password').value
+                })
+            });
+            showToast('Connection successful!', 'success');
+        }
+    } catch (error) {
+        showToast(error.message, 'error');
+    }
+}
+
+async function testStore(storeId) {
+    try {
+        await api(`/api/config/stores/${storeId}/test`, { method: 'POST' });
+        showToast('Connection successful!', 'success');
+    } catch (error) {
+        showToast(error.message, 'error');
+    }
+}
+
+async function editStore(storeId) {
+    try {
+        const data = await api('/api/config/stores');
+        const store = data.stores.find(s => s.id === storeId);
+        if (store) {
+            openStoreModal(store);
+        }
+    } catch (error) {
+        showToast('Failed to load store', 'error');
+    }
+}
+
+async function deleteStore(storeId) {
+    const confirmed = await showConfirmModal(
+        'Delete Store',
+        'Are you sure you want to delete this store connection?'
+    );
+    if (!confirmed) return;
+
+    try {
+        await api(`/api/config/stores/${storeId}`, { method: 'DELETE' });
+        showToast('Store deleted');
+        loadStores();
+    } catch (error) {
+        showToast(error.message, 'error');
+    }
+}
+
+async function setPrimaryStore(storeId) {
+    try {
+        await api(`/api/config/stores/${storeId}/set-primary`, { method: 'POST' });
+        showToast('Primary store updated');
+        loadStores();
+    } catch (error) {
+        showToast(error.message, 'error');
+    }
+}
+</script>
+{% endblock %}

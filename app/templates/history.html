@@ -1,0 +1,145 @@
+{% extends "base.html" %}
+
+{% block title %}History - Inventory Update{% endblock %}
+
+{% block content %}
+<div class="history-container">
+    <div class="flex-between mb-md">
+        <h1 class="page-title">Transaction History</h1>
+        <button id="refresh-btn" class="btn btn-secondary btn-sm">Refresh</button>
+    </div>
+
+    <!-- Filters -->
+    <div class="card">
+        <div class="flex-between" style="flex-wrap: wrap; gap: var(--spacing-md);">
+            <div class="form-group" style="margin-bottom: 0; flex: 1; min-width: 150px;">
+                <label class="form-label" for="status-filter">Status</label>
+                <select id="status-filter" class="form-input">
+                    <option value="">All</option>
+                    <option value="success">Success</option>
+                    <option value="failed">Failed</option>
+                </select>
+            </div>
+            <div class="form-group" style="margin-bottom: 0; flex: 1; min-width: 150px;">
+                <label class="form-label" for="username-filter">Username</label>
+                <input type="text" id="username-filter" class="form-input" placeholder="Filter by username">
+            </div>
+        </div>
+    </div>
+
+    <!-- Transactions table -->
+    <div class="card">
+        <div class="table-container">
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>Time</th>
+                        <th>User</th>
+                        <th>Product</th>
+                        <th>Old Qty</th>
+                        <th>New Qty</th>
+                        <th>Diff</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody id="transactions-body">
+                    <!-- Transactions will be loaded here -->
+                </tbody>
+            </table>
+        </div>
+
+        <div id="loading" class="loading hidden">
+            <div class="spinner"></div>
+        </div>
+
+        <div id="no-transactions" class="empty-state hidden">
+            <div class="empty-state-icon">📋</div>
+            <p>No transactions found.</p>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    loadTransactions();
+
+    document.getElementById('refresh-btn').addEventListener('click', loadTransactions);
+    document.getElementById('status-filter').addEventListener('change', loadTransactions);
+    document.getElementById('username-filter').addEventListener('input', debounce(loadTransactions, 300));
+});
+
+function debounce(func, wait) {
+    let timeout;
+    return function executedFunction(...args) {
+        const later = () => {
+            clearTimeout(timeout);
+            func(...args);
+        };
+        clearTimeout(timeout);
+        timeout = setTimeout(later, wait);
+    };
+}
+
+async function loadTransactions() {
+    const loading = document.getElementById('loading');
+    const tbody = document.getElementById('transactions-body');
+    const noTransactions = document.getElementById('no-transactions');
+
+    loading.classList.remove('hidden');
+    tbody.innerHTML = '';
+    noTransactions.classList.add('hidden');
+
+    const status = document.getElementById('status-filter').value;
+    const username = document.getElementById('username-filter').value.trim();
+
+    let url = '/api/transactions?limit=100';
+    if (status) url += `&status=${encodeURIComponent(status)}`;
+    if (username) url += `&username=${encodeURIComponent(username)}`;
+
+    try {
+        const data = await api(url);
+        loading.classList.add('hidden');
+
+        if (data.transactions.length === 0) {
+            noTransactions.classList.remove('hidden');
+            return;
+        }
+
+        tbody.innerHTML = data.transactions.map(tx => `
+            <tr>
+                <td>${formatDate(tx.created_at)}</td>
+                <td>${tx.username}</td>
+                <td title="${tx.product_upc}">${tx.product_description || tx.product_upc || '-'}</td>
+                <td>${tx.old_quantity ?? '-'}</td>
+                <td>${tx.new_quantity}</td>
+                <td class="${tx.difference > 0 ? 'text-success' : tx.difference < 0 ? 'text-error' : ''}">
+                    ${tx.difference !== null ? (tx.difference > 0 ? '+' : '') + tx.difference : '-'}
+                </td>
+                <td>
+                    <span class="badge ${tx.status === 'success' ? 'badge-success' : 'badge-error'}">
+                        ${tx.status}
+                    </span>
+                </td>
+            </tr>
+        `).join('');
+    } catch (error) {
+        loading.classList.add('hidden');
+        showToast('Failed to load transactions', 'error');
+    }
+}
+
+function formatDate(isoString) {
+    if (!isoString) return '-';
+    const date = new Date(isoString);
+    return date.toLocaleString('en-US', {
+        month: 'short',
+        day: 'numeric',
+        hour: 'numeric',
+        minute: '2-digit',
+        hour12: true
+    });
+}
+</script>
+{% endblock %}
