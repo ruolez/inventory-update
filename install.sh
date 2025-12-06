@@ -144,6 +144,8 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+    networks:
+      - inventory_network
 
   app:
     build:
@@ -158,6 +160,8 @@ services:
       FLASK_ENV: production
       DATABASE_URL: postgresql://postgres:postgres@db:5432/inventory
       TZ: America/Chicago
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     depends_on:
       db:
         condition: service_healthy
@@ -167,10 +171,16 @@ services:
       timeout: 10s
       retries: 3
       start_period: 40s
+    networks:
+      - inventory_network
 
 volumes:
   postgres_data:
     name: inventory-update_postgres_data
+
+networks:
+  inventory_network:
+    driver: bridge
 COMPOSE_EOF
 
     print_success "Production docker-compose file created"

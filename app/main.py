@@ -41,10 +41,20 @@ def no_cache(response):
     return response
 
 
+def add_cors_headers(response):
+    """Add CORS headers for LAN access"""
+    response.headers['Access-Control-Allow-Origin'] = '*'
+    response.headers['Access-Control-Allow-Methods'] = 'GET, POST, PUT, DELETE, OPTIONS'
+    response.headers['Access-Control-Allow-Headers'] = 'Content-Type, Authorization'
+    return response
+
+
 @app.after_request
 def after_request(response):
-    """Apply no-cache headers to all responses"""
-    return no_cache(response)
+    """Apply no-cache and CORS headers to all responses"""
+    response = no_cache(response)
+    response = add_cors_headers(response)
+    return response
 
 
 def login_required(f):
