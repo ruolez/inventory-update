@@ -39,6 +39,7 @@
                         <th>Old Qty</th>
                         <th>Entered</th>
                         <th>+ Quotes</th>
+                        <th>+ Bins</th>
                         <th>+ POs</th>
                         <th>Final</th>
                         <th>Diff</th>
@@ -118,6 +119,7 @@ async function loadTransactions() {
                 <td>${tx.old_quantity ?? '-'}</td>
                 <td>${tx.user_entered_qty ?? '-'}</td>
                 <td class="${tx.quotations_qty > 0 ? 'text-success' : ''}">${tx.quotations_qty ?? '-'}</td>
+                <td class="${tx.top_bins_qty > 0 ? 'text-success' : ''}">${tx.top_bins_qty ?? '-'}</td>
                 <td class="text-secondary">${tx.purchase_orders_qty ?? '-'}</td>
                 <td><strong>${tx.new_quantity}</strong></td>
                 <td class="${tx.difference > 0 ? 'text-success' : tx.difference < 0 ? 'text-error' : ''}">
