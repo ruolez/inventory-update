@@ -199,6 +199,15 @@ document.addEventListener('DOMContentLoaded', () => {
         resetToBarcode();
     }
 
+    function closeModalOnly() {
+        quantityModal.classList.add('hidden');
+        if (modalKeyHandler) {
+            document.removeEventListener('keydown', modalKeyHandler);
+            modalKeyHandler = null;
+        }
+        quantityInput.focus();
+    }
+
     async function closeModalAndCheckDifference() {
         quantityModal.classList.add('hidden');
         if (modalKeyHandler) {
@@ -254,7 +263,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function closeThresholdModalAndReset() {
         thresholdModal.classList.add('hidden');
-        resetToBarcode();
+        quantityInput.focus();
     }
 
     async function closeThresholdModalAndProceed() {
@@ -262,7 +271,7 @@ document.addEventListener('DOMContentLoaded', () => {
         await updateQuantity();
     }
 
-    confirmCancelBtn.addEventListener('click', closeModalAndReset);
+    confirmCancelBtn.addEventListener('click', closeModalOnly);
 
     confirmOkBtn.addEventListener('click', closeModalAndCheckDifference);
 
@@ -430,7 +439,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 closeModalAndUpdate();
             } else if (e.key === 'Escape') {
                 e.preventDefault();
-                closeModalAndReset();
+                closeModalOnly();
             }
         };
         document.addEventListener('keydown', modalKeyHandler);
