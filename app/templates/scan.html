@@ -25,13 +25,6 @@
         </div>
 
         <div class="quantity-entry">
-            <label class="scan-label">Enter Quantity</label>
-
-            <!-- Units per case display (hidden if no UnitQty2) -->
-            <div id="units-per-case-info" class="units-info hidden">
-                <span id="units-per-case-value">0</span> units per case
-            </div>
-
             <div class="quantity-inputs">
                 <div class="qty-input-group">
                     <label for="cases-input">Cases</label>
@@ -355,14 +348,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // Set up units per case
         currentUnitQty2 = product.unit_qty2 || 0;
-        const unitsInfo = document.getElementById('units-per-case-info');
 
         if (currentUnitQty2 > 0) {
-            document.getElementById('units-per-case-value').textContent = currentUnitQty2;
-            unitsInfo.classList.remove('hidden');
             casesInput.disabled = false;
         } else {
-            unitsInfo.classList.add('hidden');
             casesInput.disabled = true;
             casesInput.value = 0;
         }
