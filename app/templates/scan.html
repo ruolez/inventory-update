@@ -190,6 +190,9 @@ document.addEventListener('DOMContentLoaded', () => {
     casesInput.addEventListener('input', updateCalculatedTotal);
     piecesInput.addEventListener('input', updateCalculatedTotal);
 
+    // Select all text when clicking into cases field
+    casesInput.addEventListener('focus', () => casesInput.select());
+
     // Submit on Enter in pieces input
     piecesInput.addEventListener('keypress', (e) => {
         if (e.key === 'Enter') {
