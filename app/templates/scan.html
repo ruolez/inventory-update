@@ -352,10 +352,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // Focus cases input first, unless disabled (no unit_qty2)
         if (currentUnitQty2 > 0) {
-            casesInput.focus({ preventScroll: true });
+            casesInput.focus();
         } else {
-            piecesInput.focus({ preventScroll: true });
+            piecesInput.focus();
         }
+        window.scrollTo(0, 0);
 
         // Fetch and display quotations, purchase orders, and top bins
         fetchQuotations(product.product_upc);
