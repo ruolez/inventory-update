@@ -61,7 +61,7 @@
 
         <div class="flex-between mt-md">
             <button id="cancel-btn" class="btn btn-secondary">Cancel</button>
-            <button id="submit-btn" class="btn btn-primary">Update Quantity</button>
+            <button id="submit-btn" class="btn btn-primary">Update</button>
         </div>
     </div>
 
@@ -352,9 +352,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // Focus cases input first, unless disabled (no unit_qty2)
         if (currentUnitQty2 > 0) {
-            casesInput.focus();
+            casesInput.focus({ preventScroll: true });
         } else {
-            piecesInput.focus();
+            piecesInput.focus({ preventScroll: true });
         }
 
         // Fetch and display quotations, purchase orders, and top bins
