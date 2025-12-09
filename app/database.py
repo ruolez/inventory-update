@@ -411,7 +411,7 @@ class MSSQLManager:
             cursor = conn.cursor()
             cursor.execute("""
                 SELECT ProductID, ProductUPC, ProductSKU, ProductDescription,
-                       QuantOnHand, LastCountDate
+                       QuantOnHand, LastCountDate, ISNULL(UnitQty2, 0) AS UnitQty2
                 FROM Items_tbl
                 WHERE ProductUPC = ?
             """, (upc,))

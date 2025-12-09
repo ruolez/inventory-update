@@ -1069,3 +1069,91 @@ body {
     font-size: 1.1rem;
     font-weight: 600;
 }
+
+/* Quantity Entry - Cases + Loose Pieces */
+.quantity-entry {
+    margin-bottom: var(--spacing-md);
+}
+
+.units-info {
+    text-align: center;
+    color: var(--primary);
+    font-size: 0.9rem;
+    font-weight: 500;
+    margin-bottom: var(--spacing-md);
+    padding: var(--spacing-sm);
+    background-color: var(--primary-light);
+    border-radius: var(--radius-md);
+}
+
+.quantity-inputs {
+    display: flex;
+    gap: var(--spacing-md);
+}
+
+.qty-input-group {
+    flex: 1;
+    text-align: center;
+}
+
+.qty-input-group label {
+    display: block;
+    font-size: 0.85rem;
+    font-weight: 500;
+    color: var(--on-surface-secondary);
+    margin-bottom: var(--spacing-xs);
+}
+
+.qty-input-group input {
+    text-align: center;
+    font-size: 1.5rem;
+    padding: var(--spacing-md);
+}
+
+.qty-input-group input:disabled {
+    background: var(--surface-variant);
+    cursor: not-allowed;
+    opacity: 0.5;
+}
+
+.calculated-total {
+    text-align: center;
+    font-size: 1.5rem;
+    font-weight: 600;
+    color: var(--primary);
+    margin-top: var(--spacing-md);
+    padding: var(--spacing-md);
+    background: var(--primary-light);
+    border-radius: var(--radius-md);
+    border: 2px solid var(--primary);
+}
+
+/* Confirmation modal - quantity breakdown */
+.quantity-breakdown {
+    font-size: 0.9rem;
+    color: var(--on-surface-secondary);
+    margin-bottom: var(--spacing-xs);
+}
+
+.quantity-total {
+    font-size: 2rem;
+    font-weight: 700;
+    color: var(--primary);
+}
+
+/* Responsive adjustments for quantity inputs */
+@media (max-width: 480px) {
+    .qty-input-group input {
+        font-size: 1.25rem;
+        padding: var(--spacing-sm);
+    }
+
+    .calculated-total {
+        font-size: 1.25rem;
+        padding: var(--spacing-sm);
+    }
+
+    .quantity-total {
+        font-size: 1.5rem;
+    }
+}

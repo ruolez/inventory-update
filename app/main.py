@@ -225,7 +225,8 @@ def api_product_lookup():
             'product_sku': product['ProductSKU'],
             'product_description': product['ProductDescription'],
             'quantity_on_hand': product['QuantOnHand'],
-            'last_count_date': product['LastCountDate'].isoformat() if product['LastCountDate'] else None
+            'last_count_date': product['LastCountDate'].isoformat() if product['LastCountDate'] else None,
+            'unit_qty2': product['UnitQty2'] or 0
         })
     except Exception as e:
         return jsonify({'error': f'Lookup failed: {str(e)}'}), 500

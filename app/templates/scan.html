@@ -24,17 +24,31 @@
             <div class="product-name" id="product-name">Product Name</div>
         </div>
 
-        <div class="scan-input-container">
-            <label class="scan-label" for="quantity-input">Enter New Quantity</label>
-            <input
-                type="number"
-                id="quantity-input"
-                class="form-input large"
-                placeholder="0"
-                min="0"
-                step="any"
-                autocomplete="off"
-            >
+        <div class="quantity-entry">
+            <label class="scan-label">Enter Quantity</label>
+
+            <!-- Units per case display (hidden if no UnitQty2) -->
+            <div id="units-per-case-info" class="units-info hidden">
+                <span id="units-per-case-value">0</span> units per case
+            </div>
+
+            <div class="quantity-inputs">
+                <div class="qty-input-group">
+                    <label for="cases-input">Cases</label>
+                    <input type="number" id="cases-input" class="form-input"
+                           placeholder="0" min="0" step="1" value="0" autocomplete="off">
+                </div>
+                <div class="qty-input-group">
+                    <label for="pieces-input">Loose Pcs</label>
+                    <input type="number" id="pieces-input" class="form-input"
+                           placeholder="0" min="0" step="any" autocomplete="off">
+                </div>
+            </div>
+
+            <!-- Calculated total display -->
+            <div class="calculated-total">
+                Total: <span id="calculated-total">0</span> units
+            </div>
         </div>
 
         <!-- Quotations Info -->
@@ -90,7 +104,14 @@
             <div class="product-name" id="confirm-product-name">Product Name</div>
         </div>
         <div class="quantity-display">
-            <span id="confirm-quantity">0</span>
+            <div id="confirm-breakdown" class="quantity-breakdown hidden">
+                <span id="confirm-cases">0</span> cases ×
+                <span id="confirm-units-per-case">0</span> units +
+                <span id="confirm-pieces">0</span> loose
+            </div>
+            <div class="quantity-total">
+                = <span id="confirm-quantity">0</span> total
+            </div>
         </div>
         <p class="text-center text-secondary">Set quantity to this value?</p>
         <div class="modal-actions">
@@ -137,7 +158,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const topBinsTotal = document.getElementById('top-bins-total');
 
     const barcodeInput = document.getElementById('barcode-input');
-    const quantityInput = document.getElementById('quantity-input');
+    const casesInput = document.getElementById('cases-input');
+    const piecesInput = document.getElementById('pieces-input');
     const cancelBtn = document.getElementById('cancel-btn');
     const submitBtn = document.getElementById('submit-btn');
     const errorOkBtn = document.getElementById('error-ok-btn');
@@ -155,6 +177,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let currentQuotationsTotal = 0;
     let currentPurchaseOrdersTotal = 0;
     let currentTopBinsTotal = 0;
+    let currentUnitQty2 = 0;
 
     // Initialize
     focusBarcodeInput();
@@ -170,11 +193,23 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // Quantity input handler
-    quantityInput.addEventListener('keypress', (e) => {
+    // Quantity input handlers - update total on input
+    casesInput.addEventListener('input', updateCalculatedTotal);
+    piecesInput.addEventListener('input', updateCalculatedTotal);
+
+    // Submit on Enter in pieces input
+    piecesInput.addEventListener('keypress', (e) => {
         if (e.key === 'Enter') {
             e.preventDefault();
             showQuantityConfirmation();
+        }
+    });
+
+    // Move to pieces input on Enter in cases input
+    casesInput.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            piecesInput.focus();
         }
     });
 
@@ -205,7 +240,7 @@ document.addEventListener('DOMContentLoaded', () => {
             document.removeEventListener('keydown', modalKeyHandler);
             modalKeyHandler = null;
         }
-        quantityInput.focus();
+        piecesInput.focus();
     }
 
     async function closeModalAndCheckDifference() {
@@ -217,8 +252,19 @@ document.addEventListener('DOMContentLoaded', () => {
         await checkDifferenceAndProceed();
     }
 
+    // Calculate total quantity from cases and loose pieces
+    function getCalculatedQuantity() {
+        const cases = parseInt(casesInput.value) || 0;
+        const pieces = parseFloat(piecesInput.value) || 0;
+        return (cases * currentUnitQty2) + pieces;
+    }
+
+    function updateCalculatedTotal() {
+        document.getElementById('calculated-total').textContent = getCalculatedQuantity();
+    }
+
     async function checkDifferenceAndProceed() {
-        const userEnteredQty = parseFloat(quantityInput.value);
+        const userEnteredQty = getCalculatedQuantity();
 
         try {
             const response = await fetch('/api/product/check-difference', {
@@ -263,7 +309,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function closeThresholdModalAndReset() {
         thresholdModal.classList.add('hidden');
-        quantityInput.focus();
+        piecesInput.focus();
     }
 
     async function closeThresholdModalAndProceed() {
@@ -307,8 +353,25 @@ document.addEventListener('DOMContentLoaded', () => {
         successSection.classList.add('hidden');
         productSection.classList.remove('hidden');
 
-        quantityInput.value = '';
-        quantityInput.focus();
+        // Set up units per case
+        currentUnitQty2 = product.unit_qty2 || 0;
+        const unitsInfo = document.getElementById('units-per-case-info');
+
+        if (currentUnitQty2 > 0) {
+            document.getElementById('units-per-case-value').textContent = currentUnitQty2;
+            unitsInfo.classList.remove('hidden');
+            casesInput.disabled = false;
+        } else {
+            unitsInfo.classList.add('hidden');
+            casesInput.disabled = true;
+            casesInput.value = 0;
+        }
+
+        // Reset inputs
+        casesInput.value = 0;
+        piecesInput.value = '';
+        updateCalculatedTotal();
+        piecesInput.focus();
 
         // Fetch and display quotations, purchase orders, and top bins
         fetchQuotations(product.product_upc);
@@ -421,22 +484,37 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function showQuantityConfirmation() {
-        const quantity = quantityInput.value.trim();
-        if (quantity === '' || isNaN(parseFloat(quantity))) {
-            showToast('Please enter a valid quantity', 'error');
-            quantityInput.focus();
+        const cases = parseInt(casesInput.value) || 0;
+        const pieces = parseFloat(piecesInput.value) || 0;
+        const total = getCalculatedQuantity();
+
+        if (cases === 0 && (pieces === 0 || isNaN(pieces))) {
+            showToast('Please enter a quantity', 'error');
+            piecesInput.focus();
             return;
         }
 
         document.getElementById('confirm-product-name').textContent = currentProduct.product_description;
-        document.getElementById('confirm-quantity').textContent = quantity;
+        document.getElementById('confirm-cases').textContent = cases;
+        document.getElementById('confirm-units-per-case').textContent = currentUnitQty2;
+        document.getElementById('confirm-pieces').textContent = pieces || 0;
+        document.getElementById('confirm-quantity').textContent = total;
+
+        // Show/hide breakdown based on whether cases were entered
+        const breakdown = document.getElementById('confirm-breakdown');
+        if (cases > 0 && currentUnitQty2 > 0) {
+            breakdown.classList.remove('hidden');
+        } else {
+            breakdown.classList.add('hidden');
+        }
+
         quantityModal.classList.remove('hidden');
 
         // Add keyboard handler for Enter/Escape
         modalKeyHandler = (e) => {
             if (e.key === 'Enter') {
                 e.preventDefault();
-                closeModalAndUpdate();
+                closeModalAndCheckDifference();
             } else if (e.key === 'Escape') {
                 e.preventDefault();
                 closeModalOnly();
@@ -447,7 +525,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     async function updateQuantity() {
-        const userEnteredQty = parseFloat(quantityInput.value);
+        const userEnteredQty = getCalculatedQuantity();
 
         try {
             submitBtn.disabled = true;
@@ -512,8 +590,10 @@ document.addEventListener('DOMContentLoaded', () => {
         currentQuotationsTotal = 0;
         currentPurchaseOrdersTotal = 0;
         currentTopBinsTotal = 0;
+        currentUnitQty2 = 0;
         barcodeInput.value = '';
-        quantityInput.value = '';
+        casesInput.value = 0;
+        piecesInput.value = '';
 
         productSection.classList.add('hidden');
         errorSection.classList.add('hidden');
