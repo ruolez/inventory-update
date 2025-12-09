@@ -515,13 +515,16 @@ class MSSQLManager:
     # ==================== Bin Locations (Store DB) ====================
 
     def get_bin_locations_total(self, product_upc):
-        """Get total quantity in bin locations for a product (cases × units per case)"""
+        """Get total quantity in bin locations for a product (cases × units per case) and top bin name"""
         with self.get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute("""
-                SELECT SUM(ISNULL(bl.Qty_Cases, 0) * ISNULL(i.UnitQty2, 0)) AS total_qty
+                SELECT
+                    SUM(ISNULL(bl.Qty_Cases, 0) * ISNULL(i.UnitQty2, 0)) AS total_qty,
+                    MIN(b.BinLocation) AS top_bin_name
                 FROM Items_BinLocations bl
                 LEFT JOIN Items_tbl i ON bl.ProductUPC = i.ProductUPC
+                LEFT JOIN BinLocations_tbl b ON bl.BinLocationID = b.BinLocationID
                 WHERE bl.ProductUPC = ?
             """, (product_upc,))
             row = cursor.fetchone()

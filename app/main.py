@@ -509,9 +509,11 @@ def api_product_bin_locations():
     try:
         result = store_db.get_bin_locations_total(upc)
         total_qty = float(result.get('total_qty') or 0) if result else 0
+        top_bin_name = result.get('top_bin_name') if result else None
 
         return jsonify({
-            'total_qty': total_qty
+            'total_qty': total_qty,
+            'top_bin_name': top_bin_name
         })
     except Exception as e:
         return jsonify({'error': f'Failed to get bin locations: {str(e)}'}), 500

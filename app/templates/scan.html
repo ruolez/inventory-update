@@ -22,6 +22,7 @@
     <div id="product-section" class="card hidden">
         <div id="product-info" class="product-info">
             <div class="product-name" id="product-name">Product Name</div>
+            <span class="bin-badge hidden" id="product-bin"></span>
         </div>
 
         <div class="quantity-entry">
@@ -36,11 +37,6 @@
                     <input type="number" id="pieces-input" class="form-input"
                            placeholder="0" min="0" step="any" autocomplete="off">
                 </div>
-            </div>
-
-            <!-- Calculated total display -->
-            <div class="calculated-total">
-                Total: <span id="calculated-total">0</span> units
             </div>
         </div>
 
@@ -149,6 +145,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const purchaseOrdersTotal = document.getElementById('purchase-orders-total');
     const topBinsSection = document.getElementById('top-bins-section');
     const topBinsTotal = document.getElementById('top-bins-total');
+    const productBin = document.getElementById('product-bin');
 
     const barcodeInput = document.getElementById('barcode-input');
     const casesInput = document.getElementById('cases-input');
@@ -186,9 +183,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // Quantity input handlers - update total on input
-    casesInput.addEventListener('input', updateCalculatedTotal);
-    piecesInput.addEventListener('input', updateCalculatedTotal);
 
     // Submit on Enter in pieces input
     piecesInput.addEventListener('keypress', (e) => {
@@ -252,9 +246,6 @@ document.addEventListener('DOMContentLoaded', () => {
         return (cases * currentUnitQty2) + pieces;
     }
 
-    function updateCalculatedTotal() {
-        document.getElementById('calculated-total').textContent = getCalculatedQuantity();
-    }
 
     async function checkDifferenceAndProceed() {
         const userEnteredQty = getCalculatedQuantity();
@@ -358,8 +349,13 @@ document.addEventListener('DOMContentLoaded', () => {
         // Reset inputs
         casesInput.value = '';
         piecesInput.value = '';
-        updateCalculatedTotal();
-        piecesInput.focus();
+
+        // Focus cases input first, unless disabled (no unit_qty2)
+        if (currentUnitQty2 > 0) {
+            casesInput.focus();
+        } else {
+            piecesInput.focus();
+        }
 
         // Fetch and display quotations, purchase orders, and top bins
         fetchQuotations(product.product_upc);
@@ -454,18 +450,23 @@ document.addEventListener('DOMContentLoaded', () => {
         currentTopBinsTotal = 0;
         topBinsSection.classList.add('hidden');
         topBinsTotal.textContent = '';
+        productBin.textContent = '';
+        productBin.classList.add('hidden');
 
         try {
             const response = await fetch(`/api/product/bin-locations?upc=${encodeURIComponent(upc)}`);
             const data = await response.json();
 
-            if (!response.ok || !data.total_qty || data.total_qty === 0) {
+            if (!response.ok) {
                 return;
             }
 
             currentTopBinsTotal = data.total_qty || 0;
-            topBinsTotal.innerHTML = `<strong>Top Bins:</strong> ${data.total_qty}`;
-            // Keep section hidden - top bins is now included in calculation like quotations
+
+            if (data.top_bin_name) {
+                productBin.textContent = data.top_bin_name;
+                productBin.classList.remove('hidden');
+            }
         } catch (error) {
             console.error('Failed to fetch top bins:', error);
         }
@@ -582,6 +583,8 @@ document.addEventListener('DOMContentLoaded', () => {
         barcodeInput.value = '';
         casesInput.value = '';
         piecesInput.value = '';
+        productBin.textContent = '';
+        productBin.classList.add('hidden');
 
         productSection.classList.add('hidden');
         errorSection.classList.add('hidden');
