@@ -29,7 +29,7 @@
                 <div class="qty-input-group">
                     <label for="cases-input">Cases</label>
                     <input type="number" id="cases-input" class="form-input"
-                           placeholder="0" min="0" step="1" value="0" autocomplete="off">
+                           placeholder="0" min="0" step="1" autocomplete="off">
                 </div>
                 <div class="qty-input-group">
                     <label for="pieces-input">Loose Pcs</label>
@@ -189,9 +189,6 @@ document.addEventListener('DOMContentLoaded', () => {
     // Quantity input handlers - update total on input
     casesInput.addEventListener('input', updateCalculatedTotal);
     piecesInput.addEventListener('input', updateCalculatedTotal);
-
-    // Select all text when clicking into cases field
-    casesInput.addEventListener('focus', () => casesInput.select());
 
     // Submit on Enter in pieces input
     piecesInput.addEventListener('keypress', (e) => {
@@ -356,11 +353,10 @@ document.addEventListener('DOMContentLoaded', () => {
             casesInput.disabled = false;
         } else {
             casesInput.disabled = true;
-            casesInput.value = 0;
         }
 
         // Reset inputs
-        casesInput.value = 0;
+        casesInput.value = '';
         piecesInput.value = '';
         updateCalculatedTotal();
         piecesInput.focus();
@@ -584,7 +580,7 @@ document.addEventListener('DOMContentLoaded', () => {
         currentTopBinsTotal = 0;
         currentUnitQty2 = 0;
         barcodeInput.value = '';
-        casesInput.value = 0;
+        casesInput.value = '';
         piecesInput.value = '';
 
         productSection.classList.add('hidden');
