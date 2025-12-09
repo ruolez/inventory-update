@@ -719,6 +719,7 @@ body {
     display: flex;
     flex-direction: column;
     gap: var(--spacing-lg);
+    padding-top: 15vh;
 }
 
 .scan-input-container {
