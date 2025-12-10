@@ -192,20 +192,25 @@ class PostgresManager:
                       status, error_message))
 
     def get_transactions(self, limit=100, offset=0, status=None, username=None):
-        """Get transaction history"""
+        """Get transaction history with total count for pagination"""
         with self.get_connection() as conn:
             with conn.cursor(cursor_factory=RealDictCursor) as cur:
-                query = "SELECT * FROM transaction_log WHERE 1=1"
+                where_clause = "WHERE 1=1"
                 params = []
 
                 if status:
-                    query += " AND status = %s"
+                    where_clause += " AND status = %s"
                     params.append(status)
                 if username:
-                    query += " AND username = %s"
-                    params.append(username)
+                    where_clause += " AND username ILIKE %s"
+                    params.append(f"%{username}%")
 
-                query += " ORDER BY created_at DESC LIMIT %s OFFSET %s"
+                # Get total count
+                cur.execute(f"SELECT COUNT(*) as total FROM transaction_log {where_clause}", params)
+                total = cur.fetchone()['total']
+
+                # Get paginated results
+                query = f"SELECT * FROM transaction_log {where_clause} ORDER BY created_at DESC LIMIT %s OFFSET %s"
                 params.extend([limit, offset])
 
                 cur.execute(query, params)
@@ -217,7 +222,7 @@ class PostgresManager:
                     if row_dict.get('created_at'):
                         row_dict['created_at'] = row_dict['created_at'].isoformat()
                     result.append(row_dict)
-                return result
+                return result, total
 
     # ==================== Sessions ====================
 

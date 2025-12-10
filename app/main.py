@@ -355,15 +355,22 @@ def api_update_quantity():
 @app.route('/api/transactions')
 @login_required
 def api_transactions():
-    """Get transaction history"""
+    """Get transaction history with pagination"""
     try:
-        transactions = pg_manager.get_transactions(
-            limit=request.args.get('limit', 100, type=int),
-            offset=request.args.get('offset', 0, type=int),
+        limit = request.args.get('limit', 25, type=int)
+        offset = request.args.get('offset', 0, type=int)
+        transactions, total = pg_manager.get_transactions(
+            limit=limit,
+            offset=offset,
             status=request.args.get('status'),
             username=request.args.get('username')
         )
-        return jsonify({'transactions': transactions})
+        return jsonify({
+            'transactions': transactions,
+            'total': total,
+            'limit': limit,
+            'offset': offset
+        })
     except Exception as e:
         return jsonify({'error': f'Failed to get transactions: {str(e)}'}), 500
 

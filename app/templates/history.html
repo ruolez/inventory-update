@@ -24,6 +24,14 @@
                 <label class="form-label" for="username-filter">Username</label>
                 <input type="text" id="username-filter" class="form-input" placeholder="Filter by username">
             </div>
+            <div class="form-group" style="margin-bottom: 0; min-width: 100px;">
+                <label class="form-label" for="page-size">Per page</label>
+                <select id="page-size" class="form-input">
+                    <option value="25">25</option>
+                    <option value="50">50</option>
+                    <option value="100">100</option>
+                </select>
+            </div>
         </div>
     </div>
 
@@ -60,18 +68,45 @@
             <div class="empty-state-icon">📋</div>
             <p>No transactions found.</p>
         </div>
+
+        <!-- Pagination -->
+        <div id="pagination" class="pagination hidden">
+            <div class="pagination-info">
+                Showing <span id="showing-start">0</span>-<span id="showing-end">0</span> of <span id="total-count">0</span>
+            </div>
+            <div class="pagination-controls">
+                <button id="prev-btn" class="btn btn-secondary btn-sm" disabled>Previous</button>
+                <span id="page-indicator" class="page-indicator">Page 1 of 1</span>
+                <button id="next-btn" class="btn btn-secondary btn-sm" disabled>Next</button>
+            </div>
+        </div>
     </div>
 </div>
 {% endblock %}
 
 {% block scripts %}
 <script>
+let currentPage = 1;
+let totalPages = 1;
+let pageSize = 25;
+
 document.addEventListener('DOMContentLoaded', () => {
     loadTransactions();
 
-    document.getElementById('refresh-btn').addEventListener('click', loadTransactions);
-    document.getElementById('status-filter').addEventListener('change', loadTransactions);
-    document.getElementById('username-filter').addEventListener('input', debounce(loadTransactions, 300));
+    document.getElementById('refresh-btn').addEventListener('click', () => { currentPage = 1; loadTransactions(); });
+    document.getElementById('status-filter').addEventListener('change', () => { currentPage = 1; loadTransactions(); });
+    document.getElementById('username-filter').addEventListener('input', debounce(() => { currentPage = 1; loadTransactions(); }, 300));
+    document.getElementById('page-size').addEventListener('change', (e) => {
+        pageSize = parseInt(e.target.value);
+        currentPage = 1;
+        loadTransactions();
+    });
+    document.getElementById('prev-btn').addEventListener('click', () => {
+        if (currentPage > 1) { currentPage--; loadTransactions(); }
+    });
+    document.getElementById('next-btn').addEventListener('click', () => {
+        if (currentPage < totalPages) { currentPage++; loadTransactions(); }
+    });
 });
 
 function debounce(func, wait) {
@@ -90,15 +125,18 @@ async function loadTransactions() {
     const loading = document.getElementById('loading');
     const tbody = document.getElementById('transactions-body');
     const noTransactions = document.getElementById('no-transactions');
+    const pagination = document.getElementById('pagination');
 
     loading.classList.remove('hidden');
     tbody.innerHTML = '';
     noTransactions.classList.add('hidden');
+    pagination.classList.add('hidden');
 
     const status = document.getElementById('status-filter').value;
     const username = document.getElementById('username-filter').value.trim();
+    const offset = (currentPage - 1) * pageSize;
 
-    let url = '/api/transactions?limit=100';
+    let url = `/api/transactions?limit=${pageSize}&offset=${offset}`;
     if (status) url += `&status=${encodeURIComponent(status)}`;
     if (username) url += `&username=${encodeURIComponent(username)}`;
 
@@ -132,6 +170,22 @@ async function loadTransactions() {
                 </td>
             </tr>
         `).join('');
+
+        // Update pagination
+        const total = data.total;
+        totalPages = Math.ceil(total / pageSize);
+        const start = offset + 1;
+        const end = Math.min(offset + data.transactions.length, total);
+
+        document.getElementById('showing-start').textContent = start;
+        document.getElementById('showing-end').textContent = end;
+        document.getElementById('total-count').textContent = total.toLocaleString();
+        document.getElementById('page-indicator').textContent = `Page ${currentPage} of ${totalPages}`;
+
+        document.getElementById('prev-btn').disabled = currentPage <= 1;
+        document.getElementById('next-btn').disabled = currentPage >= totalPages;
+
+        pagination.classList.remove('hidden');
     } catch (error) {
         loading.classList.add('hidden');
         showToast('Failed to load transactions', 'error');
