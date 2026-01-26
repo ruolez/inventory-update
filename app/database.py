@@ -460,7 +460,7 @@ class MSSQLManager:
             cursor.execute("""
                 SELECT QuotationNumber, SourceDB, Dop1
                 FROM QuotationsStatus
-                WHERE DateCreate >= DATEADD(day, -60, GETDATE())
+                WHERE DateCreate >= DATEADD(day, -90, GETDATE())
                   AND (Status IS NULL OR Status NOT IN ('CONVERTED', 'DELETED'))
                   AND Dop2 IS NOT NULL AND Dop2 != ''
                   AND Dop3 IS NOT NULL AND Dop3 != ''
