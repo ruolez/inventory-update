@@ -443,9 +443,44 @@ def api_product_quotations():
                     'error': str(e)
                 })
 
+        picking_quotations_list = []
+        try:
+            picking_quotations = admin_db.get_picking_quotations()
+            for quotation in picking_quotations:
+                source_db = quotation.get('SourceDB')
+                quotation_number = quotation.get('QuotationNumber')
+                dop1 = quotation.get('Dop1')
+                if not source_db or not dop1:
+                    continue
+                try:
+                    quotation_id = int(dop1)
+                except (ValueError, TypeError):
+                    continue
+                store = pg_manager.get_store_by_nickname(source_db)
+                if not store:
+                    continue
+                try:
+                    store_db = MSSQLManager(
+                        server=store['server'],
+                        database=store['database'],
+                        user=store['username'],
+                        password=store['password']
+                    )
+                    product = store_db.get_product_in_quotation(quotation_id, upc)
+                    if product and product.get('Qty'):
+                        picking_quotations_list.append({
+                            'quotation_number': quotation_number,
+                            'source_db': source_db
+                        })
+                except Exception:
+                    pass
+        except Exception:
+            pass
+
         return jsonify({
             'quotations': results,
-            'total_qty': total_qty
+            'total_qty': total_qty,
+            'picking_quotations': picking_quotations_list
         })
     except Exception as e:
         return jsonify({'error': f'Failed to get quotations: {str(e)}'}), 500

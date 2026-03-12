@@ -4,6 +4,8 @@
 
 {% block content %}
 <div class="scan-container">
+    <div id="picking-warning" class="picking-warning hidden"></div>
+
     <!-- Barcode Input -->
     <div id="barcode-section" class="card">
         <div class="scan-input-container">
@@ -146,6 +148,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const topBinsSection = document.getElementById('top-bins-section');
     const topBinsTotal = document.getElementById('top-bins-total');
     const productBin = document.getElementById('product-bin');
+    const pickingWarning = document.getElementById('picking-warning');
 
     const barcodeInput = document.getElementById('barcode-input');
     const casesInput = document.getElementById('cases-input');
@@ -370,6 +373,8 @@ document.addEventListener('DOMContentLoaded', () => {
         quotationsSection.classList.add('hidden');
         quotationsList.innerHTML = '';
         quotationsTotal.textContent = '';
+        pickingWarning.classList.add('hidden');
+        pickingWarning.textContent = '';
 
         try {
             const response = await fetch(`/api/product/quotations?upc=${encodeURIComponent(upc)}`);
@@ -381,6 +386,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
             // Store total for update calculation
             currentQuotationsTotal = data.total_qty || 0;
+
+            if (data.picking_quotations && data.picking_quotations.length > 0) {
+                const quoteNumbers = data.picking_quotations.map(q => q.quotation_number).join(', ');
+                pickingWarning.textContent = `Product is in Quotation(s): ${quoteNumbers}`;
+                pickingWarning.classList.remove('hidden');
+            }
 
             // Build HTML but don't show the section (hidden per requirements)
             let html = '';
@@ -586,6 +597,8 @@ document.addEventListener('DOMContentLoaded', () => {
         piecesInput.value = '';
         productBin.textContent = '';
         productBin.classList.add('hidden');
+        pickingWarning.classList.add('hidden');
+        pickingWarning.textContent = '';
 
         productSection.classList.add('hidden');
         errorSection.classList.add('hidden');

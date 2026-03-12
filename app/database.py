@@ -470,6 +470,23 @@ class MSSQLManager:
             cursor.close()
             return result
 
+    def get_picking_quotations(self):
+        """Get quotations currently being picked (Dop2 populated, Dop3 not yet)"""
+        with self.get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute("""
+                SELECT QuotationNumber, SourceDB, Dop1
+                FROM QuotationsStatus
+                WHERE DateCreate >= DATEADD(day, -90, GETDATE())
+                  AND (Status IS NULL OR Status NOT IN ('CONVERTED', 'DELETED'))
+                  AND Dop2 IS NOT NULL AND Dop2 != ''
+                  AND (Dop3 IS NULL OR Dop3 = '')
+            """)
+            rows = cursor.fetchall()
+            result = [self._row_to_dict(cursor, row) for row in rows]
+            cursor.close()
+            return result
+
     # ==================== Quotation Details (Store DB) ====================
 
     def get_product_in_quotation(self, quotation_id, product_upc):
