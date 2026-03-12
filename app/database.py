@@ -479,8 +479,8 @@ class MSSQLManager:
                 FROM QuotationsStatus
                 WHERE DateCreate >= DATEADD(day, -90, GETDATE())
                   AND (Status IS NULL OR Status NOT IN ('CONVERTED', 'DELETED'))
-                  AND Dop2 IS NOT NULL AND Dop2 != ''
-                  AND (Dop3 IS NULL OR Dop3 = '')
+                  AND Dop2 IS NOT NULL AND LTRIM(RTRIM(Dop2)) != ''
+                  AND (Dop3 IS NULL OR LTRIM(RTRIM(Dop3)) = '')
             """)
             rows = cursor.fetchall()
             result = [self._row_to_dict(cursor, row) for row in rows]
