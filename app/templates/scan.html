@@ -382,7 +382,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const response = await fetch(`/api/product/quotations?upc=${encodeURIComponent(upc)}`);
             const data = await response.json();
 
-            if (!response.ok || !data.quotations || data.quotations.length === 0) {
+            if (!response.ok) {
                 return;
             }
 
