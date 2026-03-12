@@ -534,6 +534,22 @@ class MSSQLManager:
             cursor.close()
             return result
 
+    def get_todays_purchase_orders(self, product_upc):
+        """Get POs with RequiredDate = today that contain this product"""
+        with self.get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute("""
+                SELECT DISTINCT po.PoNumber
+                FROM PurchaseOrders_tbl po
+                JOIN PurchaseOrdersDetails_tbl pod ON po.PoID = pod.PoID
+                WHERE CAST(po.RequiredDate AS DATE) = CAST(GETDATE() AS DATE)
+                  AND pod.ProductUPC = ?
+            """, (product_upc,))
+            rows = cursor.fetchall()
+            result = [self._row_to_dict(cursor, row) for row in rows]
+            cursor.close()
+            return result
+
     # ==================== Bin Locations (Store DB) ====================
 
     def get_bin_locations_total(self, product_upc):

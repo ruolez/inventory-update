@@ -842,7 +842,8 @@ body {
     }
 }
 
-.picking-warning {
+.picking-warning,
+.received-warning {
     background-color: var(--warning-light);
     border: 1px solid #fde68a;
     border-left: 4px solid var(--warning);

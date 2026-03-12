@@ -5,6 +5,7 @@
 {% block content %}
 <div class="scan-container">
     <div id="picking-warning" class="picking-warning hidden"></div>
+    <div id="received-warning" class="received-warning hidden"></div>
 
     <!-- Barcode Input -->
     <div id="barcode-section" class="card">
@@ -149,6 +150,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const topBinsTotal = document.getElementById('top-bins-total');
     const productBin = document.getElementById('product-bin');
     const pickingWarning = document.getElementById('picking-warning');
+    const receivedWarning = document.getElementById('received-warning');
 
     const barcodeInput = document.getElementById('barcode-input');
     const casesInput = document.getElementById('cases-input');
@@ -424,6 +426,8 @@ document.addEventListener('DOMContentLoaded', () => {
         purchaseOrdersSection.classList.add('hidden');
         purchaseOrdersList.innerHTML = '';
         purchaseOrdersTotal.textContent = '';
+        receivedWarning.classList.add('hidden');
+        receivedWarning.textContent = '';
 
         try {
             const response = await fetch(`/api/product/purchase-orders?upc=${encodeURIComponent(upc)}`);
@@ -435,6 +439,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
             // Store total for history (informational only, not added to final qty)
             currentPurchaseOrdersTotal = data.total_qty || 0;
+
+            if (data.received_today) {
+                receivedWarning.textContent = 'This product was received Today';
+                receivedWarning.classList.remove('hidden');
+            }
 
             let html = '';
             for (const po of data.purchase_orders) {
@@ -599,6 +608,8 @@ document.addEventListener('DOMContentLoaded', () => {
         productBin.classList.add('hidden');
         pickingWarning.classList.add('hidden');
         pickingWarning.textContent = '';
+        receivedWarning.classList.add('hidden');
+        receivedWarning.textContent = '';
 
         productSection.classList.add('hidden');
         errorSection.classList.add('hidden');

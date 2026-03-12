@@ -527,9 +527,18 @@ def api_product_purchase_orders():
                     'error': str(e)
                 })
 
+        received_today = False
+        try:
+            todays_pos = store_db.get_todays_purchase_orders(upc)
+            if todays_pos:
+                received_today = True
+        except Exception:
+            pass
+
         return jsonify({
             'purchase_orders': results,
-            'total_qty': total_qty
+            'total_qty': total_qty,
+            'received_today': received_today
         })
     except Exception as e:
         return jsonify({'error': f'Failed to get purchase orders: {str(e)}'}), 500
