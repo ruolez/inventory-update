@@ -444,20 +444,26 @@ def api_product_quotations():
                 })
 
         picking_quotations_list = []
+        picking_debug = []
         try:
             picking_quotations = admin_db.get_picking_quotations()
+            picking_debug.append(f'found {len(picking_quotations)} picking quotations')
             for quotation in picking_quotations:
                 source_db = quotation.get('SourceDB')
                 quotation_number = quotation.get('QuotationNumber')
                 dop1 = quotation.get('Dop1')
+                picking_debug.append(f'checking {quotation_number}: source_db={source_db}, dop1={repr(dop1)}')
                 if not source_db or not dop1:
+                    picking_debug.append(f'  skipped: missing source_db or dop1')
                     continue
                 try:
                     quotation_id = int(dop1)
                 except (ValueError, TypeError):
+                    picking_debug.append(f'  skipped: dop1 not int')
                     continue
                 store = pg_manager.get_store_by_nickname(source_db)
                 if not store:
+                    picking_debug.append(f'  skipped: store not found for {source_db}')
                     continue
                 try:
                     store_db = MSSQLManager(
@@ -467,20 +473,22 @@ def api_product_quotations():
                         password=store['password']
                     )
                     product = store_db.get_product_in_quotation(quotation_id, upc)
+                    picking_debug.append(f'  lookup: quotation_id={quotation_id}, upc={upc}, result={product}')
                     if product and product.get('Qty'):
                         picking_quotations_list.append({
                             'quotation_number': quotation_number,
                             'source_db': source_db
                         })
-                except Exception:
-                    pass
-        except Exception:
-            pass
+                except Exception as e:
+                    picking_debug.append(f'  exception: {str(e)}')
+        except Exception as e:
+            picking_debug.append(f'outer exception: {str(e)}')
 
         return jsonify({
             'quotations': results,
             'total_qty': total_qty,
-            'picking_quotations': picking_quotations_list
+            'picking_quotations': picking_quotations_list,
+            'picking_debug': picking_debug
         })
     except Exception as e:
         return jsonify({'error': f'Failed to get quotations: {str(e)}'}), 500
