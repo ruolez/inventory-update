@@ -381,6 +381,7 @@ document.addEventListener('DOMContentLoaded', () => {
         try {
             const response = await fetch(`/api/product/quotations?upc=${encodeURIComponent(upc)}`);
             const data = await response.json();
+            console.log('[QUOTATIONS DEBUG]', JSON.stringify(data));
 
             if (!response.ok) {
                 return;
