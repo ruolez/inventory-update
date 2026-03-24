@@ -544,6 +544,7 @@ class MSSQLManager:
                 JOIN PurchaseOrdersDetails_tbl pod ON po.PoID = pod.PoID
                 WHERE CAST(po.RequiredDate AS DATE) = CAST(GETDATE() AS DATE)
                   AND pod.ProductUPC = ?
+                  AND ISNULL(pod.QtyReceived, 0) > 0
             """, (product_upc,))
             rows = cursor.fetchall()
             result = [self._row_to_dict(cursor, row) for row in rows]
